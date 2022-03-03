@@ -25,17 +25,30 @@ public:
     float getTemperature();
     void begin();
     void saveNewConfig();
+    void saveNewCalib();
+    void lcdDisplay(String firstLine, String secondLine);
+    void lcdFirstLine(String line);
+    void lcdSecondLine(String line);
 
     String _paramName;
+    String _unit;
     int _eepromN; //the amount of value in eeprom array for each sensor
 
     virtual bool isTbdOutOfRange();
 
     bool _enableSensor;
+
+    struct eeprom
+    {
+        String name;
+        float paramValue;
+        float *value;
+        float lowerBound;
+        float upperBound;
+    }_calibSolutionArr[3];
     
 protected:
 
-    String _unit;
     float _value;
     float _voltage;
     float _temperature;
@@ -46,22 +59,12 @@ protected:
     int m; //repetition to acquire temperature value
     int n; //repetition to acquire voltage value 
     int _sensorPin;
-    bool _isTempCompAcq;
-
-    struct eeprom
-    {
-        String name;
-        float paramValue;
-        float *value;
-        float lowerBound;
-        float upperBound;
-    }_calibSolutionArr[3];
 
     void buttonParse();
     void lcdCal();
-    void tempCompAcq();
     void calibration();
 
+    virtual void tempCompVolt();
     virtual void acqCalibValue(bool* calibrationFinish); //to facilitate EC difference
     virtual void voltAcq(); //to facilitate EC difference
     virtual void calibStartMessage() = 0;

@@ -28,6 +28,7 @@ private:
     
     float compensateRaw();
     void calibStartMessage();
+    void tempCompVolt();
 };
 
 #endif

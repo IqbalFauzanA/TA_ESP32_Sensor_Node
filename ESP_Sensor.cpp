@@ -95,6 +95,26 @@ void ESP_Sensor::buttonParse()
     }
 }
 
+void ESP_Sensor::lcdDisplay(String firstLine, String secondLine)
+{
+    lcdFirstLine(firstLine);
+    lcdSecondLine(secondLine);
+}
+
+void ESP_Sensor::lcdFirstLine(String line)
+{
+    line += "                ";
+    lcd.setCursor(0,0);
+    lcd.print(line);
+}
+
+void ESP_Sensor::lcdSecondLine(String line)
+{
+    line += "                ";
+    lcd.setCursor(0,1);
+    lcd.print(line);
+}
+
 void ESP_Sensor::calState(byte* state)//function for calibration state (overall), return the next state if state changed
 {
     if (_enableSensor)
@@ -102,11 +122,7 @@ void ESP_Sensor::calState(byte* state)//function for calibration state (overall)
         buttonParse();
         if (_isCalib == 0)
         {
-            lcd.setCursor(0,0);
-            lcd.print(F("Select mode:    ")); 
-            lcd.setCursor(0,1);
-            lcd.print(_paramName);
-            lcd.print(F(" Calibration  "));
+            lcdDisplay(F("Select mode:"), _paramName + F(" Calibration"));
             if (mode_button.isReleased())
             {
                 *state = *state + 1;
@@ -118,8 +134,8 @@ void ESP_Sensor::calState(byte* state)//function for calibration state (overall)
             {
                 calculateValue();
                 timepoint = millis();
+                lcdCal();
             }
-            lcdCal();
         }
         calibration();
     }
@@ -131,39 +147,28 @@ void ESP_Sensor::calState(byte* state)//function for calibration state (overall)
 
 void ESP_Sensor::lcdCal()
 {
-    lcd.setCursor(0,0);
     if ((_calibSolutionArr[0].lowerBound < _voltage) && (_voltage < _calibSolutionArr[0].upperBound))
     {
-        lcd.print(_calibSolutionArr[0].paramValue,1);
-        lcd.print(_unit);
-        lcd.print(F(" BUFFER    "));
+        lcdFirstLine(String(_calibSolutionArr[0].paramValue,1) + _unit + F(" BUFFER"));
     } 
     else if ((_calibSolutionArr[1].lowerBound < _voltage) && (_voltage < _calibSolutionArr[1].upperBound))
     {
-        lcd.print(_calibSolutionArr[1].paramValue,1);
-        lcd.print(_unit);
-        lcd.print(F(" BUFFER    "));
+        lcdFirstLine(String(_calibSolutionArr[1].paramValue,1) + _unit + F(" BUFFER"));
     }
     else if ((_calibSolutionArr[2].lowerBound < _voltage) && (_voltage < _calibSolutionArr[2].upperBound))
     {
-        lcd.print(_calibSolutionArr[2].paramValue,1);
-        lcd.print(_unit);
-        lcd.print(F(" BUFFER    "));
+        lcdFirstLine(String(_calibSolutionArr[2].paramValue,1) + _unit + F(" BUFFER"));
     }
     else
     {
-        lcd.print(F("NOT BUFFER SOL. "));
+        lcdFirstLine(F("NOT BUFFER SOL."));
     }
-    lcd.setCursor(0,1);
-    lcd.print(_paramName);
-    lcd.print(F(" "));
+    String secondLine = _paramName + F(" ");
     if (isTbdOutOfRange())
     {
-        lcd.print(F(">"));
+        secondLine += F(">");
     }
-    lcd.print(_value,2);
-    lcd.print(_unit);
-    lcd.print(F("        "));
+    lcdSecondLine(secondLine + String(_value,2) + _unit);
 }
 
 void ESP_Sensor::calculateValue()
@@ -172,21 +177,14 @@ void ESP_Sensor::calculateValue()
     {
         Serial.print(F("Reading "));
         Serial.println(_paramName);
-        lcd.setCursor(0,0);
-        lcd.print(F("Reading "));
-        lcd.print(_paramName);
-        lcd.print(F("      "));
-        lcd.setCursor(0,1);
-        lcd.print(F("                "));
-        if (_isTempCompAcq)
-        {
-            tempCompAcq();
-        }
-        else if (!_isTempCompAcq)
+        lcdDisplay("Reading " + _paramName, "");
+        float value = 0;
+        for (int i = 0; i < m; i++)
         {
             voltAcq();
-            _value = compensateRaw();
+            value += compensateRaw();
         }
+        _value = value / m;
     }
     else
     {
@@ -199,25 +197,7 @@ void ESP_Sensor::calculateValue()
     Serial.println(_value); 
 }
 
-float ESP_Sensor::getValue()
-{
-    return _value;
-}
-
-void ESP_Sensor::tempCompAcq()
-{
-    float value = 0;
-    for (int i = 0; i < m; i++)
-    {
-        tempSensor.requestTemperatures(); 
-        _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
-        voltAcq();
-        value += compensateRaw();
-    }
-    _value = value / m;
-}
-
-void ESP_Sensor::voltAcq()
+void ESP_Sensor::voltAcq()//virtual for EC (look ESP_EC.cpp)
 {
     float voltage = 0;
     for(int i=0; i < n; i++)
@@ -225,6 +205,11 @@ void ESP_Sensor::voltAcq()
         voltage += (analogRead(_sensorPin)/4095.0)*3300;
     }
     _voltage = voltage / n;
+}
+
+float ESP_Sensor::getValue()
+{
+    return _value;
 }
 
 void ESP_Sensor::calibration()
@@ -277,15 +262,13 @@ void ESP_Sensor::calibration()
                     }
                 }
                 Serial.print(F(">>>Calibration Successful"));
-                lcd.setCursor(0,1);
-                lcd.print(F("VALUE SAVED     "));
+                lcdSecondLine(F("VALUE SAVED"));
                 delay(1000);
             }
             else
             {
                 Serial.print(F(">>>Calibration Failed"));
-                lcd.setCursor(0,1);
-                lcd.print(F("VALUE NOT SAVED "));
+                lcdSecondLine(F("VALUE NOT SAVED"));
                 delay(1000);
             }
             Serial.print(F(", exit "));
@@ -301,7 +284,8 @@ void ESP_Sensor::calibration()
 
 void ESP_Sensor::acqCalibValue(bool* calibrationFinish)
 {
-     if ((_calibSolutionArr[0].lowerBound < _voltage) && (_voltage < _calibSolutionArr[0].upperBound))
+    tempCompVolt(); //voltage temperature compensation
+    if ((_calibSolutionArr[0].lowerBound < _voltage) && (_voltage < _calibSolutionArr[0].upperBound))
     {
         Serial.println();
         Serial.print(F(">>>Solution: "));
@@ -312,8 +296,7 @@ void ESP_Sensor::acqCalibValue(bool* calibrationFinish)
         *_calibSolutionArr[0].value = _voltage;
         Serial.println();
         *calibrationFinish = 1;
-        lcd.setCursor(0,1);
-        lcd.print(F("CAL. SUCCESSFUL!"));
+        lcdSecondLine(F("CAL. SUCCESSFUL!"));
         delay(500);
     } 
     else if ((_calibSolutionArr[1].lowerBound < _voltage) && (_voltage < _calibSolutionArr[1].upperBound))
@@ -327,8 +310,7 @@ void ESP_Sensor::acqCalibValue(bool* calibrationFinish)
         *_calibSolutionArr[1].value = _voltage;
         Serial.println();
         *calibrationFinish = 1;
-        lcd.setCursor(0,1);
-        lcd.print(F("CAL. SUCCESSFUL!"));
+        lcdSecondLine(F("CAL. SUCCESSFUL!"));
         delay(500);
     }
     else if ((_calibSolutionArr[2].lowerBound < _voltage) && (_voltage < _calibSolutionArr[2].upperBound))
@@ -342,8 +324,7 @@ void ESP_Sensor::acqCalibValue(bool* calibrationFinish)
         *_calibSolutionArr[2].value = _voltage;
         Serial.println();
         *calibrationFinish = 1;
-        lcd.setCursor(0,1);
-        lcd.print(F("CAL. SUCCESSFUL!"));
+        lcdSecondLine(F("CAL. SUCCESSFUL!"));
         delay(500);
     }
     else
@@ -352,8 +333,7 @@ void ESP_Sensor::acqCalibValue(bool* calibrationFinish)
         Serial.println(F(">>>Buffer Solution Error, Try Again<<<"));
         Serial.println();
         *calibrationFinish = 0;
-        lcd.setCursor(0,1);
-        lcd.print(F("CAL. FAILED!    "));
+        lcdSecondLine(F("CAL. FAILED!"));
         delay(500);
     }
 }
@@ -375,7 +355,25 @@ void ESP_Sensor::saveNewConfig()
     lcd.print(EEPROM.read(_eepromAddress));
 }
 
+void ESP_Sensor::saveNewCalib()
+{
+    int eepromAddr = _eepromStartAddress;
+    for (int i = 0; i < _eepromN; i++)
+    {
+        if (*_calibSolutionArr[i].value != EEPROM.readFloat(eepromAddr))
+        {
+            EEPROM.writeFloat(eepromAddr, *_calibSolutionArr[i].value);
+            EEPROM.commit();
+        }
+        eepromAddr += (int)sizeof(float);
+    }
+}
+
 bool ESP_Sensor::isTbdOutOfRange()
 {
     return false;
+}
+
+void ESP_Sensor::tempCompVolt()//default, no temp compensation for volt
+{
 }

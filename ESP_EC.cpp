@@ -43,8 +43,6 @@ ESP_EC::ESP_EC()
     _paramName = "EC";
     _eepromN = 2;
     _unit = "mS/cm";
-    
-    _isTempCompAcq = true;
 }
 
 ESP_EC::~ESP_EC()
@@ -53,18 +51,17 @@ ESP_EC::~ESP_EC()
 
 float ESP_EC::compensateRaw()//compensate raw EC with calibration value and temperature
 {
+    tempSensor.requestTemperatures(); 
+    _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     float kvalue = _kvalueLow; // set default K value: K = kvalueLow
     float value, valueTemp;
     float _rawEC = 0;
     _rawEC = 1000 * _voltage / RES2 / ECREF;
     valueTemp = _rawEC * kvalue;
     //automatic shift process
-    //First Range:(0,2); Second Range:(2,20)
-    if (valueTemp < 2.0)
-    {
-        kvalue = _kvalueLow;
-    }
-    else if (valueTemp >= 2.0)
+    //First Range:(0,2.5); Second Range:(2.5,20)
+    //if > 2.5, kvalue high, else low (stays default)
+    if (valueTemp > 2.5)
     {
         kvalue = _kvalueHigh;
     }

@@ -37,8 +37,6 @@ ESP_PH::ESP_PH()
     _eepromN = 2;
     _unit = "";
     _sensorPin = PH_SENSOR;
-    
-    _isTempCompAcq = false;
 }
 
 ESP_PH::~ESP_PH()
