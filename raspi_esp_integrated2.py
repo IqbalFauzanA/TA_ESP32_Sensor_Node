@@ -9,6 +9,14 @@ import shutil
 import threading
 from dataclasses import dataclass
 
+# set up GPIO
+GPIO.setwarnings(False)
+GPIO.cleanup()
+GPIO.setmode(GPIO.BOARD)
+PIN_TO_ESP = 37  # for making data request to ESP32
+GPIO.setup(PIN_TO_ESP, GPIO.OUT)
+GPIO.output(PIN_TO_ESP, GPIO.LOW)
+
 # set up serial
 ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=10)
 ser.reset_input_buffer()
@@ -222,48 +230,49 @@ def dataRequest():
         print("Failed to receive data (invalid format or exceeds 60 seconds timeout)...")
 
 def requestTask(lock):
+    REQ_INT = 30
+    timepoint = time.time() - REQ_INT
     while(1):
-        REQ_INT = 60
-        timepoint = time.time() - REQ_INT
-        if (time.time() - timepoint > REQ_INT):
-            lock.acquire()
-            dataRequest
-            lock.release()
-            timepoint = time.time()
-            print("Requested data has been saved to CSV file")
-            print("Type command (CALIB, or CONFIG)\n")
-
-def configAndCalibTask(lock):
-    # set up GPIO
-    GPIO.cleanup()
-    GPIO.setmode(GPIO.BOARD)
-    PIN_TO_ESP = 37  # for making data request to ESP32
-    GPIO.setup(PIN_TO_ESP, GPIO.OUT)
-    GPIO.output(PIN_TO_ESP, GPIO.LOW)
-    while (1):
         try:
-            isInputValid = False
-            while (not isInputValid):
-                input_str = input()
+            if (time.time() - timepoint > REQ_INT):
                 time.sleep(0.2)
+                lock.acquire()
                 GPIO.output(PIN_TO_ESP, GPIO.HIGH)  # requesting data
-                if (input_str == "CALIB"):
-                    lock.acquire()
-                    isInputValid = True
-                    manualCalib()
-                    lock.release()
-                elif (input_str == "CONFIG"):
-                    lock.acquire()
-                    isInputValid = True
-                    configuration()
-                    lock.release()
-                else:
-                    print("Invalid, please retype command\n")
+                dataRequest()
+                lock.release()
+                timepoint = time.time()
+                print("Requested data has been saved to CSV file")
+                print("Type command (CALIB, or CONFIG)")
         finally:
+            lock.acquire()
             GPIO.output(PIN_TO_ESP, GPIO.LOW)  # turn off the request pin
-        print("Going to sleep...")
+            lock.release()
 
 lock = threading.Lock()
-
 threading.Thread(target=requestTask, args=(lock,)).start()
-threading.Thread(target=configAndCalibTask, args=(lock,)).start()
+
+while (1):
+    try:
+        isInputValid = False
+        while (not isInputValid):
+            input_str = input()
+            time.sleep(0.2)
+            if (input_str == "CALIB"):
+                lock.acquire()
+                GPIO.output(PIN_TO_ESP, GPIO.HIGH)  # requesting data
+                isInputValid = True
+                manualCalib()
+                lock.release()
+            elif (input_str == "CONFIG"):
+                lock.acquire()
+                GPIO.output(PIN_TO_ESP, GPIO.HIGH)  # requesting data
+                isInputValid = True
+                configuration()
+                lock.release()
+            else:
+                print("Invalid, please retype command\n")
+    finally:
+        lock.acquire()
+        GPIO.output(PIN_TO_ESP, GPIO.LOW)  # turn off the request pin
+        lock.release()
+    print("Type command (CALIB, or CONFIG)")
