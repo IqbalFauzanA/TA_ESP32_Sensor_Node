@@ -23,7 +23,7 @@ private:
     float _acidVoltage;
     float _neutralVoltage;
          
-    float compensateRaw();
+    float calculateValueFromVolt();
     void calibStartMessage();
 };
 

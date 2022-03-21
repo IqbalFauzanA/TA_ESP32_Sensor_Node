@@ -23,37 +23,33 @@
 #define TBD_SENSOR 32 //turbidity sensor pin
 
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
-extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor 
-extern LiquidCrystal_I2C lcd;
+extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
 extern debounceButton cal_button;
 extern debounceButton mode_button;
 
-ESP_Turbidity::ESP_Turbidity()
-{
+ESP_Turbidity::ESP_Turbidity() {
     _eepromStartAddress = TBDVALUEADDR;
     
     //default values
     _transparentVoltage = 2772;   //solution 0.0 NTU at 25C
     _translucentVoltage = 2574; //solution 1000.0 NTU at 25C
     _opaqueVoltage = 2317; //solution 2000.0 NTU at 25C
-    _calibSolutionArr[0] = {"Opaque (2000 NTU) Voltage", OPAQUE_VALUE, &_opaqueVoltage, OPAQUE_LOW_VOLTAGE, OPAQUE_HIGH_VOLTAGE};
-    _calibSolutionArr[1] = {"Translucent (1000 NTU) Voltage", TRANSLUCENT_VALUE, &_translucentVoltage, TRANSLUCENT_LOW_VOLTAGE, TRANSLUCENT_HIGH_VOLTAGE};
-    _calibSolutionArr[2] = {"Transparent (0 NTU) Voltage", TRANSPARENT_VALUE, &_transparentVoltage, TRANSPARENT_LOW_VOLTAGE, TRANSPARENT_HIGH_VOLTAGE};
+    _eepromCalibParamArray[0] = {"Opaque (2000 NTU) Voltage", OPAQUE_VALUE, &_opaqueVoltage, OPAQUE_LOW_VOLTAGE, OPAQUE_HIGH_VOLTAGE};
+    _eepromCalibParamArray[1] = {"Translucent (1000 NTU) Voltage", TRANSLUCENT_VALUE, &_translucentVoltage, TRANSLUCENT_LOW_VOLTAGE, TRANSLUCENT_HIGH_VOLTAGE};
+    _eepromCalibParamArray[2] = {"Transparent (0 NTU) Voltage", TRANSPARENT_VALUE, &_transparentVoltage, TRANSPARENT_LOW_VOLTAGE, TRANSPARENT_HIGH_VOLTAGE};
     
     _vPeak = 1690;
 
-    _paramName = "Tbd";
-    _eepromN = 3;
-    _unit = "NTU";
+    _sensorName = "Tbd";
+    _eepromCalibParamCount = 3;
+    _sensorUnit = "NTU";
     _sensorPin = TBD_SENSOR;
 }
 
-ESP_Turbidity::~ESP_Turbidity()
-{
+ESP_Turbidity::~ESP_Turbidity() {
 }
 
-bool ESP_Turbidity::isTbdOutOfRange()
-{
+bool ESP_Turbidity::isTbdOutOfRange() {
     if (_voltage < _vPeak)
     {
         if (isnan(_value))
@@ -71,8 +67,7 @@ bool ESP_Turbidity::isTbdOutOfRange()
     }
 }
 
-float ESP_Turbidity::compensateRaw()
-{
+float ESP_Turbidity::calculateValueFromVolt() {
     tempSensor.requestTemperatures(); 
     _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     float value = 0;
@@ -95,7 +90,6 @@ float ESP_Turbidity::compensateRaw()
     if (isTbdOutOfRange())
     {
         value = ntu_peak;
-        Serial.println("TBD Voltage Out of Range");
     }
     else
     {
@@ -104,13 +98,11 @@ float ESP_Turbidity::compensateRaw()
     return value;
 }
 
-void ESP_Turbidity::tempCompVolt()
-{
+void ESP_Turbidity::tempCompVolt() {
     _voltage = (1455*_voltage-3795*_temperature+94875)/(2*_temperature+1405);
 }
 
-void ESP_Turbidity::calibStartMessage()
-{
+void ESP_Turbidity::calibStartMessage() {
     Serial.println();
     Serial.println(F(">>>Enter Turbidity Calibration Mode<<<"));
     Serial.println(F(">>>Please put the probe into the 0.0, 1000.0, or 2000.0 NTU standard solution.<<<"));

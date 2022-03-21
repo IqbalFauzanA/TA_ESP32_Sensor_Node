@@ -23,34 +23,32 @@
 #define ECREF 200.0
 
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
-extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor 
-extern LiquidCrystal_I2C lcd;
+extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
 extern debounceButton cal_button;
 extern debounceButton mode_button;
 extern Adafruit_ADS1115 ads;
+extern Adafruit_SH1106G display;
 
-ESP_EC::ESP_EC()
-{
+ESP_EC::ESP_EC() {
     _eepromStartAddress = KVALUEADDR;
     
     //default values
     _kvalueLow = 1.0;
     _kvalueHigh = 1.0;
-    _calibSolutionArr[0] = {"K Value Low (1.413 mS/cm)", EC_LOW_VALUE, &_kvalueLow, EC_1413_LOW_VOLTAGE, EC_1413_HIGH_VOLTAGE};
-    _calibSolutionArr[1] = {"K Value High (2.76 mS/cm or 12.88 mS/cm)", EC_HIGH_VALUE_1, &_kvalueHigh, EC_276_LOW_VOLTAGE, EC_276_HIGH_VOLTAGE};
-    _calibSolutionArr[2] = {"K Value High (2.76 mS/cm or 12.88 mS/cm)", EC_HIGH_VALUE_2, &_kvalueHigh, EC_1288_LOW_VOLTAGE, EC_1288_HIGH_VOLTAGE};
+    _eepromCalibParamArray[0] = {"K Value Low (1.413 mS/cm)", EC_LOW_VALUE, &_kvalueLow, EC_1413_LOW_VOLTAGE, EC_1413_HIGH_VOLTAGE};
+    _eepromCalibParamArray[1] = {"K Value High (2.76 mS/cm or 12.88 mS/cm)", EC_HIGH_VALUE_1, &_kvalueHigh, EC_276_LOW_VOLTAGE, EC_276_HIGH_VOLTAGE};
+    _eepromCalibParamArray[2] = {"K Value High (2.76 mS/cm or 12.88 mS/cm)", EC_HIGH_VALUE_2, &_kvalueHigh, EC_1288_LOW_VOLTAGE, EC_1288_HIGH_VOLTAGE};
     
-    _paramName = "EC";
-    _eepromN = 2;
-    _unit = "mS/cm";
+    _sensorName = "EC";
+    _eepromCalibParamCount = 2;
+    _sensorUnit = "mS/cm";
 }
 
-ESP_EC::~ESP_EC()
-{
+ESP_EC::~ESP_EC() {
 }
 
-float ESP_EC::compensateRaw()//compensate raw EC with calibration value and temperature
-{
+//compensate raw EC with calibration value and temperature
+float ESP_EC::calculateValueFromVolt() {
     tempSensor.requestTemperatures(); 
     _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     float kvalue = _kvalueLow; // set default K value: K = kvalueLow
@@ -71,10 +69,10 @@ float ESP_EC::compensateRaw()//compensate raw EC with calibration value and temp
     return value;
 }
 
-void ESP_EC::voltAcq()
-{
+void ESP_EC::acquireVolt() {
     float adsvoltage;
     float voltage = 0;
+    int n = 100;
     for (int i = 0; i < n; i++)
     {
         adsvoltage = ads.readADC_SingleEnded(0) / 10;
@@ -83,8 +81,7 @@ void ESP_EC::voltAcq()
     _voltage = voltage / n;
 }
 
-void ESP_EC::calibStartMessage()
-{
+void ESP_EC::calibStartMessage() {
     Serial.println();
     Serial.println(F(">>>Enter EC Calibration Mode<<<"));
     Serial.println(F(">>>Please put the probe into the 1413us/cm, 2.76ms/cm, or 12.88ms/cm standard buffer solution<<<"));
@@ -92,8 +89,7 @@ void ESP_EC::calibStartMessage()
     Serial.println();
 }
 
-void ESP_EC::acqCalibValue(bool* calibrationFinish)
-{
+void ESP_EC::captureCalibVolt(bool* calibrationFinish) {
     static float compECsolution;
     float KValueTemp;
     if ((_voltage > EC_1413_LOW_VOLTAGE) && (_voltage < EC_1413_HIGH_VOLTAGE))
@@ -155,8 +151,8 @@ void ESP_EC::acqCalibValue(bool* calibrationFinish)
         Serial.print(F(">>>Successful,K:"));
         Serial.print(KValueTemp);
         Serial.println(F(", Send EXITEC to Save and Exit<<<"));
-        lcd.setCursor(0,1);
-        lcd.print(F("CAL. SUCCESSFUL!"));
+        display.println(F("CAL. SUCCESSFUL!"));
+        display.display();
         delay(500);
         if ((_voltage > EC_1413_LOW_VOLTAGE) && (_voltage < EC_1413_HIGH_VOLTAGE))
         {
@@ -191,8 +187,8 @@ void ESP_EC::acqCalibValue(bool* calibrationFinish)
         Serial.println(F(">>>Failed,Try Again<<<"));
         Serial.println();
         *calibrationFinish = 0;
-        lcd.setCursor(0,1);
-        lcd.print(F("CAL. FAILED!    "));
+        display.println(F("CAL. FAILED!    "));
+        display.display();
         delay(500);
     }
 }

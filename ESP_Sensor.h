@@ -5,10 +5,12 @@
 #include "EEPROM.h"
 #include <DallasTemperature.h>
 #include <OneWire.h>
-#include <LiquidCrystal_I2C.h>
 #include "debounceButton.h"
 #include <math.h>
 #include "Adafruit_ADS1015.h"
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SH110X.h>
 
 #define CALCULATE_PERIOD 5000U
 
@@ -19,56 +21,49 @@ public:
     ESP_Sensor();
     ~ESP_Sensor();
     
-    void calState(byte* state);
+    void calibration(byte* state);
     float getValue();
-    void calculateValue();
+    void acquireValueFromVolt();
     float getTemperature();
     void begin();
     void saveNewConfig();
     void saveNewCalib();
-    void lcdDisplay(String firstLine, String secondLine);
-    void lcdFirstLine(String line);
-    void lcdSecondLine(String line);
+    void displayTwoLines(String firstLine, String secondLine);
 
-    String _paramName;
-    String _unit;
-    int _eepromN; //the amount of value in eeprom array for each sensor
+    String _sensorName;
+    String _sensorUnit;
+    int _eepromCalibParamCount; //the amount of value in eeprom array for each sensor
 
     virtual bool isTbdOutOfRange();
 
     bool _enableSensor;
 
-    struct eeprom
+    struct eepromCalibParam
     {
         String name;
         float paramValue;
         float *value;
         float lowerBound;
         float upperBound;
-    }_calibSolutionArr[3];
+    }_eepromCalibParamArray[3];
     
 protected:
 
     float _value;
     float _voltage;
     float _temperature;
-    byte _calMode;
-    bool _isCalib;
     int _eepromStartAddress;
     int _eepromAddress;
-    int m; //repetition to acquire temperature value
-    int n; //repetition to acquire voltage value 
     int _sensorPin;
 
-    void buttonParse();
-    void lcdCal();
-    void calibration();
+    void calibDisplay();
 
     virtual void tempCompVolt();
-    virtual void acqCalibValue(bool* calibrationFinish); //to facilitate EC difference
-    virtual void voltAcq(); //to facilitate EC difference
+    virtual void captureCalibVolt(bool* calibrationFinish); //to facilitate EC difference
+    virtual void saveCalibVoltAndExit(bool* calibrationFinish);
+    virtual void acquireVolt(); //to facilitate EC difference
     virtual void calibStartMessage() = 0;
-    virtual float compensateRaw() = 0;
+    virtual float calculateValueFromVolt() = 0;
 };
 
 #endif

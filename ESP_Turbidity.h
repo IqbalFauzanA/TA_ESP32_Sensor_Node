@@ -26,7 +26,7 @@ private:
     float _opaqueVoltage;
     float _vPeak;
     
-    float compensateRaw();
+    float calculateValueFromVolt();
     void calibStartMessage();
     void tempCompVolt();
 };

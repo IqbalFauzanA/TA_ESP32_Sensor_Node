@@ -22,10 +22,10 @@ private:
     float  _kvalueLow;
     float  _kvalueHigh;
 
-    float compensateRaw();
+    float calculateValueFromVolt();
     void calibStartMessage();
-    void acqCalibValue(bool* calibrationFinish);
-    void voltAcq();
+    void captureCalibVolt(bool* calibrationFinish);
+    void acquireVolt();
 };
 
 #endif

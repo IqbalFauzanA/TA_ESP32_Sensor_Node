@@ -18,33 +18,29 @@
 #define ACID_VALUE 4.0
 #define PH_SENSOR 35 //pH sensor pin
 
-extern LiquidCrystal_I2C lcd;
 extern debounceButton cal_button;
 extern debounceButton mode_button;
 
-ESP_PH::ESP_PH()
-{
+ESP_PH::ESP_PH() {
     _eepromStartAddress = PHVALUEADDR;
 
     //default values
     _acidVoltage = 2032.44;   //buffer solution 4.0 at 25C
     _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C
-    _calibSolutionArr[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage, PH_8_VOLTAGE, PH_6_VOLTAGE};
-    _calibSolutionArr[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage, PH_5_VOLTAGE, PH_3_VOLTAGE};
-    _calibSolutionArr[2] = {"", 0, 0, 0, 0};
+    _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage, PH_8_VOLTAGE, PH_6_VOLTAGE};
+    _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage, PH_5_VOLTAGE, PH_3_VOLTAGE};
+    _eepromCalibParamArray[2] = {"", 0, 0, 0, 0};
     
-    _paramName = "PH";
-    _eepromN = 2;
-    _unit = "";
+    _sensorName = "PH";
+    _eepromCalibParamCount = 2;
+    _sensorUnit = "";
     _sensorPin = PH_SENSOR;
 }
 
-ESP_PH::~ESP_PH()
-{
+ESP_PH::~ESP_PH() {
 }
 
-float ESP_PH::compensateRaw()
-{
+float ESP_PH::calculateValueFromVolt() {
 
     float slope = (NEUTRAL_VALUE - ACID_VALUE) / ((_neutralVoltage - 1500.0) / 3.0 - (_acidVoltage - 1500.0) / 3.0); // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
     float intercept = NEUTRAL_VALUE - slope * (_neutralVoltage - 1500.0) / 3.0;;
@@ -52,8 +48,7 @@ float ESP_PH::compensateRaw()
     return value;
 }
 
-void ESP_PH::calibStartMessage()
-{
+void ESP_PH::calibStartMessage() {
     Serial.println();
     Serial.println(F(">>>Enter PH Calibration Mode<<<"));
     Serial.println(F(">>>Please put the probe into the 4.0 or 7.0 standard buffer solution.<<<"));
