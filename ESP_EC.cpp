@@ -89,7 +89,7 @@ void ESP_EC::calibStartMessage() {
     Serial.println();
 }
 
-void ESP_EC::captureCalibVolt(bool* calibrationFinish) {
+void ESP_EC::captureCalibVolt(bool* isCalibSuccess) {
     static float compECsolution;
     float KValueTemp;
     if ((_voltage > EC_1413_LOW_VOLTAGE) && (_voltage < EC_1413_HIGH_VOLTAGE))
@@ -119,7 +119,7 @@ void ESP_EC::captureCalibVolt(bool* calibrationFinish) {
     else
     {
         Serial.print(F(">>>Buffer Solution Error Try Again<<<   "));
-        calibrationFinish = 0;
+        isCalibSuccess = 0;
     }
     Serial.println();
     Serial.print(F(">>>KValueTemp calculation formule: "));
@@ -175,7 +175,7 @@ void ESP_EC::captureCalibVolt(bool* calibrationFinish) {
             Serial.print(_kvalueHigh);
             Serial.println(F("<<<"));
         }
-        *calibrationFinish = 1;
+        *isCalibSuccess = 1;
     }
     else
     {
@@ -186,7 +186,7 @@ void ESP_EC::captureCalibVolt(bool* calibrationFinish) {
         Serial.println("<<<");
         Serial.println(F(">>>Failed,Try Again<<<"));
         Serial.println();
-        *calibrationFinish = 0;
+        *isCalibSuccess = 0;
         display.println(F("CAL. FAILED!    "));
         display.display();
         delay(500);

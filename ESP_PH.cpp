@@ -41,11 +41,15 @@ ESP_PH::~ESP_PH() {
 }
 
 float ESP_PH::calculateValueFromVolt() {
-
+    tempCompVolt();
     float slope = (NEUTRAL_VALUE - ACID_VALUE) / ((_neutralVoltage - 1500.0) / 3.0 - (_acidVoltage - 1500.0) / 3.0); // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
     float intercept = NEUTRAL_VALUE - slope * (_neutralVoltage - 1500.0) / 3.0;;
     float value = slope * (_voltage - 1500.0) / 3.0 + intercept; //y = k*x + b
     return value;
+}
+
+void ESP_PH::tempCompVolt(){
+    _voltage = 1.9134 + (_voltage - 1.9134) * (298.15 / (_temperature + 273.15));
 }
 
 void ESP_PH::calibStartMessage() {
