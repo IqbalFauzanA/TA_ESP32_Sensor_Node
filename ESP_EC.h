@@ -23,9 +23,12 @@ private:
     float  _kvalueHigh;
 
     float calculateValueFromVolt();
+    float compensateVoltWithTemperature();
     void calibStartMessage();
     void captureCalibVolt(bool* calibrationFinish);
-    void acquireVolt();
+    void readAndAverageVolt();
+    float calculateCalibTemporaryValue(float solutionValue, float voltage);
+    bool isCalibrationTemporaryValueValid(float eepromTemporaryValue);
 };
 
 #endif

@@ -22,14 +22,14 @@ public:
     ~ESP_Sensor();
     
     void calibration(byte* state);
-    float getValue();
-    void acquireValueFromVolt();
-    float getTemperature();
+    void getFinalVoltAndValue();
     void begin();
     void saveNewConfig();
     void saveNewCalib();
     void displayTwoLines(String firstLine, String secondLine);
-
+    
+    float _value;
+    float _temperature;
     String _sensorName;
     String _sensorUnit;
     int _eepromCalibParamCount; //the amount of value in eeprom array for each sensor
@@ -41,29 +41,29 @@ public:
     struct eepromCalibParam
     {
         String name;
-        float paramValue;
-        float *value;
+        float solutionValue;
+        float *calibratedValue;
         float lowerBound;
         float upperBound;
     }_eepromCalibParamArray[3];
     
 protected:
 
-    float _value;
     float _voltage;
-    float _temperature;
     int _eepromStartAddress;
     int _eepromAddress;
     int _sensorPin;
 
     void calibDisplay();
+    void captureCalibValue(bool* calibrationFinish);
+    void saveCalibVoltAndExit(bool* calibrationFinish);
 
-    virtual void tempCompVolt();
-    virtual void captureCalibVolt(bool* calibrationFinish); //to facilitate EC difference
-    virtual void saveCalibVoltAndExit(bool* calibrationFinish);
-    virtual void acquireVolt(); //to facilitate EC difference
+    virtual float compensateVoltWithTemperature();
+    virtual void readAndAverageVolt(); //to facilitate EC difference
     virtual void calibStartMessage() = 0;
     virtual float calculateValueFromVolt() = 0;
+    virtual float calculateCalibTemporaryValue(float solutionValue, float voltage);
+    virtual bool isCalibrationTemporaryValueValid(float eepromTemporaryValue);
 };
 
 #endif

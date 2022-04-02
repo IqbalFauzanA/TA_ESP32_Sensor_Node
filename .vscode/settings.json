@@ -6,6 +6,14 @@
         "istream": "cpp",
         "numeric": "cpp",
         "streambuf": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "unordered_map": "cpp",
+        "functional": "cpp",
+        "system_error": "cpp",
+        "tuple": "cpp",
+        "cmath": "cpp",
+        "fstream": "cpp",
+        "array": "cpp",
+        "utility": "cpp"
     }
 }

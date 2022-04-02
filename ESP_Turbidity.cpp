@@ -68,8 +68,6 @@ bool ESP_Turbidity::isTbdOutOfRange() {
 }
 
 float ESP_Turbidity::calculateValueFromVolt() {
-    tempSensor.requestTemperatures(); 
-    _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     float value = 0;
     float x1 = _opaqueVoltage; //opaque voltage
     float y1 = OPAQUE_VALUE; //opaque NTU
@@ -85,8 +83,6 @@ float ESP_Turbidity::calculateValueFromVolt() {
     
     _vPeak = -b/(2*a);
     float ntu_peak = a*pow(_vPeak, 2.0) + b*_vPeak + c;
-    //compensate voltage with temperature
-    tempCompVolt();
     if (isTbdOutOfRange())
     {
         value = ntu_peak;
@@ -98,8 +94,11 @@ float ESP_Turbidity::calculateValueFromVolt() {
     return value;
 }
 
-void ESP_Turbidity::tempCompVolt() {
+float ESP_Turbidity::compensateVoltWithTemperature() {
+    tempSensor.requestTemperatures(); 
+    _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     _voltage = (1455*_voltage-3795*_temperature+94875)/(2*_temperature+1405);
+    return _voltage;
 }
 
 void ESP_Turbidity::calibStartMessage() {

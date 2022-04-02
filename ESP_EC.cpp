@@ -49,8 +49,6 @@ ESP_EC::~ESP_EC() {
 
 //compensate raw EC with calibration value and temperature
 float ESP_EC::calculateValueFromVolt() {
-    tempSensor.requestTemperatures(); 
-    _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     float kvalue = _kvalueLow; // set default K value: K = kvalueLow
     float value, valueTemp;
     float _rawEC = 0;
@@ -63,13 +61,18 @@ float ESP_EC::calculateValueFromVolt() {
     {
         kvalue = _kvalueHigh;
     }
-    
     value = _rawEC * kvalue;//calculate the EC value after automatic shift
-    value = value / (1.0 + 0.0185 * (_temperature - 25.0)); //temperature compensation
     return value;
 }
 
-void ESP_EC::acquireVolt() {
+float ESP_EC::compensateVoltWithTemperature() {
+    tempSensor.requestTemperatures(); 
+    _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
+    _voltage = _voltage / (1.0 + 0.0185 * (_temperature - 25.0)); //temperature compensation
+    return _voltage;
+}
+
+void ESP_EC::readAndAverageVolt() {
     float adsvoltage;
     float voltage = 0;
     int n = 100;
@@ -89,106 +92,10 @@ void ESP_EC::calibStartMessage() {
     Serial.println();
 }
 
-void ESP_EC::captureCalibVolt(bool* isCalibSuccess) {
-    static float compECsolution;
-    float KValueTemp;
-    if ((_voltage > EC_1413_LOW_VOLTAGE) && (_voltage < EC_1413_HIGH_VOLTAGE))
-    {
-        Serial.print(F(">>>Buffer 1.413ms/cm<<<"));                            //recognize 1.413us/cm buffer solution
-        compECsolution = EC_LOW_VALUE * (1.0 + 0.0185 * (_temperature - 25.0)); //temperature compensation
-        Serial.print(F(">>>compECsolution: "));
-        Serial.print(compECsolution);
-        Serial.println(F("<<<"));
-    }
-    else if ((_voltage > EC_276_LOW_VOLTAGE) && (_voltage < EC_276_HIGH_VOLTAGE))
-    {
-        Serial.print(F(">>>Buffer 2.76ms/cm<<<"));                            //recognize 2.76ms/cm buffer solution
-        compECsolution = EC_HIGH_VALUE_1 * (1.0 + 0.0185 * (_temperature - 25.0)); //temperature compensation
-        Serial.print(F(">>>compECsolution: "));
-        Serial.print(compECsolution);
-        Serial.println(F("<<<"));
-    }
-    else if ((_voltage > EC_1288_LOW_VOLTAGE) && (_voltage < EC_1288_HIGH_VOLTAGE))
-    {
-        Serial.print(F(">>>Buffer 12.88ms/cm<<<"));                            //recognize 12.88ms/cm buffer solution
-        compECsolution = EC_HIGH_VALUE_2 * (1.0 + 0.0185 * (_temperature - 25.0)); //temperature compensation
-        Serial.print(F(">>>compECsolution: "));
-        Serial.print(compECsolution);
-        Serial.println(F("<<<"));
-    }
-    else
-    {
-        Serial.print(F(">>>Buffer Solution Error Try Again<<<   "));
-        isCalibSuccess = 0;
-    }
-    Serial.println();
-    Serial.print(F(">>>KValueTemp calculation formule: "));
-    Serial.print(F("RES2"));
-    Serial.print(F(" * "));
-    Serial.print(F("ECREF"));
-    Serial.print(F(" * "));
-    Serial.print(F("compECsolution"));
-    Serial.print(F(" / 1000.0 / "));
-    Serial.print(F("voltage"));
-    Serial.println(F("<<<"));
-    Serial.print(F(">>>KValueTemp calculation: "));
-    Serial.print(RES2);
-    Serial.print(F(" * "));
-    Serial.print(ECREF);
-    Serial.print(F(" * "));
-    Serial.print(compECsolution);
-    Serial.print(F(" / 1000.0 / "));
-    Serial.print(_voltage);
-    Serial.println(F("<<<"));
-    KValueTemp = RES2 * ECREF * compECsolution / 1000.0 / _voltage; //calibrate the k value
-    Serial.println();
-    Serial.print(F(">>>KValueTemp: "));
-    Serial.print(KValueTemp);
-    Serial.println(F("<<<"));
-    if ((KValueTemp > 0.5) && (KValueTemp < 2.0))
-    {
-        Serial.println();
-        Serial.print(F(">>>Successful,K:"));
-        Serial.print(KValueTemp);
-        Serial.println(F(", Send EXITEC to Save and Exit<<<"));
-        display.println(F("CAL. SUCCESSFUL!"));
-        display.display();
-        delay(500);
-        if ((_voltage > EC_1413_LOW_VOLTAGE) && (_voltage < EC_1413_HIGH_VOLTAGE))
-        {
-            _kvalueLow = KValueTemp;
-            Serial.print(">>>kvalueLow: ");
-            Serial.print(_kvalueLow);
-            Serial.println(F("<<<"));
-        }
-        else if ((_voltage > EC_276_LOW_VOLTAGE) && (_voltage < EC_276_HIGH_VOLTAGE))
-        {
-            _kvalueHigh = KValueTemp;
-            Serial.print(">>>kvalueHigh: ");
-            Serial.print(_kvalueHigh);
-            Serial.println(F("<<<"));
-        }
-        else if ((_voltage > EC_1288_LOW_VOLTAGE) && (_voltage < EC_1288_HIGH_VOLTAGE))
-        {
-            _kvalueHigh = KValueTemp;
-            Serial.print(">>>kvalueHigh: ");
-            Serial.print(_kvalueHigh);
-            Serial.println(F("<<<"));
-        }
-        *isCalibSuccess = 1;
-    }
-    else
-    {
-        Serial.println();
-        Serial.println(F(">>>KValueTemp out of range 0.5-2.0<<<"));
-        Serial.print(">>>KValueTemp: ");
-        Serial.print(KValueTemp, 4);
-        Serial.println("<<<");
-        Serial.println(F(">>>Failed,Try Again<<<"));
-        Serial.println();
-        *isCalibSuccess = 0;
-        display.println(F("CAL. FAILED!    "));
-        display.display();
-        delay(500);
-    }
+float ESP_EC::calculateCalibTemporaryValue(float solutionValue, float voltage){
+    return RES2 * ECREF * solutionValue / 1000.0 / voltage;
+}
+
+bool ESP_EC::isCalibrationTemporaryValueValid(float eepromTemporaryValue) {
+    return ((eepromTemporaryValue > 0.5) && (eepromTemporaryValue < 2.0));
 }

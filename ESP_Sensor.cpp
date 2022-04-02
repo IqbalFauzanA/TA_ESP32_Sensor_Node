@@ -1,7 +1,6 @@
 #include "ESP_Sensor.h"
 
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
-extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor 
 extern Adafruit_SH1106G display;
 extern debounceButton cal_button;
 extern debounceButton mode_button;
@@ -15,13 +14,13 @@ ESP_Sensor::~ESP_Sensor() {
 void ESP_Sensor::begin() {
     _eepromAddress = _eepromStartAddress;
     for (int i = 0; i < _eepromCalibParamCount; i++) {
-        float default_value = *_eepromCalibParamArray[i].value; //set default_value with initial value
-        *_eepromCalibParamArray[i].value = EEPROM.readFloat(_eepromAddress); //read the calibrated value from EEPROM
-        if (*_eepromCalibParamArray[i].value == float() || isnan(*_eepromCalibParamArray[i].value)) {
-            *_eepromCalibParamArray[i].value = default_value; // For new EEPROM, write default value to EEPROM
-            EEPROM.writeFloat(_eepromAddress, *_eepromCalibParamArray[i].value);
+        float default_value = *_eepromCalibParamArray[i].calibratedValue; //set default_value with initial value
+        *_eepromCalibParamArray[i].calibratedValue = EEPROM.readFloat(_eepromAddress); //read the calibrated value from EEPROM
+        if (*_eepromCalibParamArray[i].calibratedValue == float() || isnan(*_eepromCalibParamArray[i].calibratedValue)) {
+            *_eepromCalibParamArray[i].calibratedValue = default_value; // For new EEPROM, write default value to EEPROM
+            EEPROM.writeFloat(_eepromAddress, *_eepromCalibParamArray[i].calibratedValue);
             EEPROM.commit();
-            Serial.print(*_eepromCalibParamArray[i].value);
+            Serial.print(*_eepromCalibParamArray[i].calibratedValue);
             Serial.print(F(" written in EEPROM."));
         }
         _eepromAddress = _eepromAddress + (int)sizeof(float);
@@ -29,7 +28,7 @@ void ESP_Sensor::begin() {
         Serial.print(" ");
         Serial.print(_eepromCalibParamArray[i].name);
         Serial.print(F(" in EEPROM: "));
-        Serial.println(*_eepromCalibParamArray[i].value);
+        Serial.println(*_eepromCalibParamArray[i].calibratedValue);
     }
 
     //check if sensor is set as enabled in EEPROM or not
@@ -48,13 +47,6 @@ void ESP_Sensor::begin() {
         Serial.print(F(" sensor initialized as enabled in EEPROM: "));
     }
     Serial.println(_enableSensor);
-
-    tempSensor.requestTemperatures(); 
-    _temperature = tempSensor.getTempCByIndex(0);
-}
-
-float ESP_Sensor::getTemperature() {
-    return _temperature;
 }
 
 void ESP_Sensor::displayTwoLines(String firstLine, String secondLine) {
@@ -92,7 +84,7 @@ void ESP_Sensor::calibration(byte* sensor) {
         //INSIDE CALIB MODE
         else if (isCalibrating == true) {
             if (isPressed && cal_button.isReleased()) { //CAPTURE CALIB VOLT
-                captureCalibVolt(&isCalibSuccess);
+                captureCalibValue(&isCalibSuccess);
                 isPressed = false;
             }
             else if (mode_button.isReleased()) { //EXIT CALIB MODE
@@ -100,7 +92,7 @@ void ESP_Sensor::calibration(byte* sensor) {
                 isCalibrating = false;
             }
             if (millis() - timepoint > CALCULATE_PERIOD) {
-                acquireValueFromVolt();
+                getFinalVoltAndValue();
                 calibDisplay();
                 timepoint = millis();
             }
@@ -111,51 +103,31 @@ void ESP_Sensor::calibration(byte* sensor) {
     }
 }
 
-void ESP_Sensor::captureCalibVolt(bool* isCalibSuccess) {
-    tempCompVolt(); //voltage temperature compensation
-    if ((_eepromCalibParamArray[0].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[0].upperBound)) {
-        Serial.println();
-        Serial.print(F(">>>Solution: "));
-        Serial.print(_eepromCalibParamArray[0].paramValue);
-        Serial.print(F(" "));
-        Serial.print(_sensorUnit);
-        Serial.println(F("<<<"));
-        *_eepromCalibParamArray[0].value = _voltage;
-        Serial.println();
-        *isCalibSuccess = 1;
-        display.println(F("CAL. SUCCESSFUL!"));
-        display.display();
-        delay(500);
-    } 
-    else if ((_eepromCalibParamArray[1].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[1].upperBound)) {
-        Serial.println();
-        Serial.print(F(">>>Solution: "));
-        Serial.println(_eepromCalibParamArray[1].paramValue);
-        Serial.print(F(" "));
-        Serial.print(_sensorUnit);
-        Serial.println(F("<<<"));
-        *_eepromCalibParamArray[1].value = _voltage;
-        Serial.println();
-        *isCalibSuccess = 1;
-        display.println(F("CAL. SUCCESSFUL!"));
-        display.display();
-        delay(500);
+void ESP_Sensor::captureCalibValue(bool* isCalibSuccess) {
+    float calibTemporaryValue;
+    for (int i = 0; i < 3; i++){
+        if ((_eepromCalibParamArray[i].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[i].upperBound)) {
+            calibTemporaryValue = calculateCalibTemporaryValue(_eepromCalibParamArray[i].solutionValue, _voltage);
+            Serial.println();
+            Serial.print(F(">>>Solution: "));
+            Serial.print(_eepromCalibParamArray[i].solutionValue);
+            Serial.print(F(" "));
+            Serial.print(_sensorUnit);
+            Serial.println(F("<<<"));
+            if (isCalibrationTemporaryValueValid(calibTemporaryValue)){
+                *_eepromCalibParamArray[i].calibratedValue = calibTemporaryValue;
+                *isCalibSuccess = 1;
+                Serial.println();
+                display.println(F("CAL. SUCCESSFUL!"));
+                display.display();
+                delay(500);
+            }
+            else {
+                Serial.println(F(">>>KValueTemp out of range 0.5-2.0<<<"));
+            }
+        }
     }
-    else if ((_eepromCalibParamArray[2].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[2].upperBound)) {
-        Serial.println();
-        Serial.print(F(">>>Solution: "));
-        Serial.println(_eepromCalibParamArray[2].paramValue);
-        Serial.print(F(" "));
-        Serial.print(_sensorUnit);
-        Serial.println(F("<<<"));
-        *_eepromCalibParamArray[2].value = _voltage;
-        Serial.println();
-        *isCalibSuccess = 1;
-        display.println(F("CAL. SUCCESSFUL!"));
-        display.display();
-        delay(500);
-    }
-    else {
+    if (*isCalibSuccess == false) {
         Serial.println();
         Serial.println(F(">>>Buffer Solution Error, Try Again<<<"));
         Serial.println();
@@ -165,25 +137,33 @@ void ESP_Sensor::captureCalibVolt(bool* isCalibSuccess) {
     }
 }
 
+float ESP_Sensor::calculateCalibTemporaryValue(float solutionValue, float voltage){
+    return voltage;
+}
+
+bool ESP_Sensor::isCalibrationTemporaryValueValid(float eepromTemporaryValue) {
+    return true;
+}
+
 void ESP_Sensor::saveCalibVoltAndExit(bool* isCalibSuccess) {
     if (*isCalibSuccess) {
         if ((_eepromCalibParamArray[0].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[0].upperBound)) {
-            EEPROM.writeFloat(_eepromStartAddress, *_eepromCalibParamArray[0].value);
+            EEPROM.writeFloat(_eepromStartAddress, *_eepromCalibParamArray[0].calibratedValue);
             EEPROM.commit();
         } 
         else if ((_eepromCalibParamArray[1].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[1].upperBound)) {
-            EEPROM.writeFloat(_eepromStartAddress + (int)sizeof(float), *_eepromCalibParamArray[1].value);
+            EEPROM.writeFloat(_eepromStartAddress + (int)sizeof(float), *_eepromCalibParamArray[1].calibratedValue);
             EEPROM.commit();
         }
         else if ((_eepromCalibParamArray[2].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[2].upperBound)) {
             //for EC
             if (_eepromCalibParamCount == 2) {
-                EEPROM.writeFloat(_eepromStartAddress + (int)sizeof(float), *_eepromCalibParamArray[2].value);
+                EEPROM.writeFloat(_eepromStartAddress + (int)sizeof(float), *_eepromCalibParamArray[2].calibratedValue);
                 EEPROM.commit();
             }
             //for tbd
             else if (_eepromCalibParamCount == 3) {
-                EEPROM.writeFloat(_eepromStartAddress + (int)sizeof(float) + (int)sizeof(float), *_eepromCalibParamArray[2].value);
+                EEPROM.writeFloat(_eepromStartAddress + (int)sizeof(float) + (int)sizeof(float), *_eepromCalibParamArray[2].calibratedValue);
                 EEPROM.commit();
             }
         }
@@ -208,13 +188,13 @@ void ESP_Sensor::saveCalibVoltAndExit(bool* isCalibSuccess) {
 void ESP_Sensor::calibDisplay() {
     String firstLine;
     if ((_eepromCalibParamArray[0].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[0].upperBound)) {
-        firstLine = String(_eepromCalibParamArray[0].paramValue,1) + _sensorUnit + F(" BUFFER");
+        firstLine = String(_eepromCalibParamArray[0].solutionValue,2) + _sensorUnit + F(" BUFFER");
     } 
     else if ((_eepromCalibParamArray[1].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[1].upperBound)) {
-        firstLine = String(_eepromCalibParamArray[1].paramValue,1) + _sensorUnit + F(" BUFFER");
+        firstLine = String(_eepromCalibParamArray[1].solutionValue,2) + _sensorUnit + F(" BUFFER");
     }
     else if ((_eepromCalibParamArray[2].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[2].upperBound)) {
-        firstLine = String(_eepromCalibParamArray[2].paramValue,1) + _sensorUnit + F(" BUFFER");
+        firstLine = String(_eepromCalibParamArray[2].solutionValue,2) + _sensorUnit + F(" BUFFER");
     }
     else {
         firstLine = F("NOT BUFFER SOL.");
@@ -223,44 +203,35 @@ void ESP_Sensor::calibDisplay() {
     if (isTbdOutOfRange()) {
         secondLine += F(">");
     }
-    displayTwoLines(firstLine, secondLine + String(_value,2) + _sensorUnit);
+    displayTwoLines(firstLine, secondLine + String(_value,2) + F(" ") + _sensorUnit);
 }
 
-void ESP_Sensor::acquireValueFromVolt() {
+void ESP_Sensor::getFinalVoltAndValue() {
     if (_enableSensor) {
-        Serial.print(F("Reading "));
-        Serial.println(_sensorName);
         displayTwoLines("Reading " + _sensorName, F(""));
-        float value = 0;
+        float volt = 0;
         int m = 5;
         for (int i = 0; i < m; i++) {
-            acquireVolt();
-            value += calculateValueFromVolt();
+            readAndAverageVolt();
+            volt += compensateVoltWithTemperature();
         }
-        _value = value / m;
+        _voltage = volt / m;
+        _value = calculateValueFromVolt();
     }
     else {
-        Serial.print(_sensorName);
-        Serial.println(F(" sensor disabled"));
+        _voltage = NAN;
         _value = NAN;
     }
-    Serial.print(_sensorName);
-    Serial.print(": ");
-    Serial.println(_value); 
 }
 
 //virtual for EC (look ESP_EC.cpp)
-void ESP_Sensor::acquireVolt() {
+void ESP_Sensor::readAndAverageVolt() {
     float voltage = 0;
     int n = 100;
     for(int i=0; i < n; i++) {
         voltage += (analogRead(_sensorPin)/4095.0)*3300;
     }
     _voltage = voltage / n;
-}
-
-float ESP_Sensor::getValue() {
-    return _value;
 }
 
 void ESP_Sensor::saveNewConfig() {
@@ -273,19 +244,18 @@ void ESP_Sensor::saveNewConfig() {
 void ESP_Sensor::saveNewCalib() {
     int eepromAddr = _eepromStartAddress;
     for (int i = 0; i < _eepromCalibParamCount; i++) {
-        if (*_eepromCalibParamArray[i].value != EEPROM.readFloat(eepromAddr)) {
-            EEPROM.writeFloat(eepromAddr, *_eepromCalibParamArray[i].value);
+        if (*_eepromCalibParamArray[i].calibratedValue != EEPROM.readFloat(eepromAddr)) {
+            EEPROM.writeFloat(eepromAddr, *_eepromCalibParamArray[i].calibratedValue);
             EEPROM.commit();
         }
         eepromAddr += (int)sizeof(float);
     }
 }
 
-bool ESP_Sensor::isTbdOutOfRange()
-{
+bool ESP_Sensor::isTbdOutOfRange() {
     return false;
 }
 
-void ESP_Sensor::tempCompVolt()//default, no temp compensation for volt
-{
+float ESP_Sensor::compensateVoltWithTemperature() {//default, no temp compensation for volt
+    return _voltage;
 }

@@ -63,10 +63,8 @@ void setup() {
     bool isDisplayMain = false;
     unsigned long timepoint = 0U;
     while (digitalRead(PI_PIN)) { 
-        Serial.println(F("Pi Pin ON"));
         sensors[0]->displayTwoLines(F("Reading Serial"), F("waiting for cmd"));
         String inString = Serial.readStringUntil('\n');
-        Serial.println("inString : " + inString);
         //when sending request, raspi will send local time
         if (isPiTime(inString)) { 
             display.println(F("responding req"));
@@ -98,7 +96,6 @@ void setup() {
     }
     //JIKA TIDAK KALIBRASI ATAU SUDAH SELESAI
     if (!digitalRead(CAL_PIN)) {
-        Serial.println(F("Going to sleep..."));
         if (isDisplayMain == false) {
             sensors[0]->displayTwoLines(F("Press CAL to"), F("wake up & calib."));
         }
@@ -146,7 +143,7 @@ bool isPiTime(String inStr) {
 
 void dataRequestResponse() {
     for (int i = 0; i < SENSOR_COUNT; i++) {
-        sensors[i]->acquireValueFromVolt();
+        sensors[i]->getFinalVoltAndValue();
     }
     sensors[0]->displayTwoLines(F("Send sensor data"), F(""));
     unsigned long timepoint = millis() - DATA_RESEND_PERIOD;
@@ -157,14 +154,14 @@ void dataRequestResponse() {
             Serial.print(F("Data#"));
             Serial.print(F("Time:")); Serial.print(piTime);
             Serial.print(F(" ;Temperature:"));
-            Serial.print(sensors[0]->getTemperature());
+            Serial.print(sensors[0]->_temperature);
             Serial.print(F(" "));
             for (int i = 0; i < SENSOR_COUNT; i++) {
                 if (sensors[i]->_enableSensor) {
                     Serial.print(F(";"));
                     Serial.print(sensors[i]->_sensorName);
                     Serial.print(F(":"));
-                    Serial.print(sensors[i]->getValue());
+                    Serial.print(sensors[i]->_value);
                     Serial.print(F(" "));
                     Serial.print(sensors[i]->_sensorUnit);
                 }
@@ -183,7 +180,7 @@ void displayMain() {
     display.clearDisplay();
     display.setCursor(0,0);
     display.println("Reading time: " + piTime);
-    display.println("Temp: " + String(sensors[0]->getTemperature(),2) + "^C");
+    display.println("Temp: " + String(sensors[0]->_temperature,2) + "^C");
     for (int i = 0; i < SENSOR_COUNT; i++) {
         if (sensors[i]->_enableSensor) {
             display.print(sensors[i]->_sensorName + ": ");
@@ -192,7 +189,7 @@ void displayMain() {
                     display.print(F(">"));
                 }
             }
-            display.print(sensors[i]->getValue(),2);
+            display.print(sensors[i]->_value,2);
             display.println(" " + sensors[i]->_sensorUnit);
         }
     }
@@ -251,7 +248,7 @@ void sendCalibInitData() {
             for (int j = 0; j < sensors[i]->_eepromCalibParamCount; j++) {
                 Serial.print(sensors[i]->_eepromCalibParamArray[j].name);
                 Serial.print(F("_"));
-                Serial.print(*sensors[i]->_eepromCalibParamArray[j].value);
+                Serial.print(*sensors[i]->_eepromCalibParamArray[j].calibratedValue);
                 Serial.print(F(","));
             }
             if (i < SENSOR_COUNT-1) {
@@ -271,7 +268,7 @@ void processNewCalib() {
         if (sensors[i]->_enableSensor) {
             for (int j = 0; j < sensors[i]->_eepromCalibParamCount; j++) {
                 float inFloat = Serial.parseFloat();
-                *sensors[i]->_eepromCalibParamArray[j].value = inFloat;
+                *sensors[i]->_eepromCalibParamArray[j].calibratedValue = inFloat;
                 sensors[i]->saveNewCalib();
             }
         }

@@ -20,6 +20,9 @@
 
 extern debounceButton cal_button;
 extern debounceButton mode_button;
+extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
+extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
+
 
 ESP_PH::ESP_PH() {
     _eepromStartAddress = PHVALUEADDR;
@@ -41,15 +44,17 @@ ESP_PH::~ESP_PH() {
 }
 
 float ESP_PH::calculateValueFromVolt() {
-    tempCompVolt();
     float slope = (NEUTRAL_VALUE - ACID_VALUE) / ((_neutralVoltage - 1500.0) / 3.0 - (_acidVoltage - 1500.0) / 3.0); // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
     float intercept = NEUTRAL_VALUE - slope * (_neutralVoltage - 1500.0) / 3.0;;
     float value = slope * (_voltage - 1500.0) / 3.0 + intercept; //y = k*x + b
     return value;
 }
 
-void ESP_PH::tempCompVolt(){
+float ESP_PH::compensateVoltWithTemperature(){
+    tempSensor.requestTemperatures(); 
+    _temperature = tempSensor.getTempCByIndex(0);
     _voltage = 1.9134 + (_voltage - 1.9134) * (298.15 / (_temperature + 273.15));
+    return _voltage;
 }
 
 void ESP_PH::calibStartMessage() {

@@ -25,7 +25,7 @@ private:
          
     float calculateValueFromVolt();
     void calibStartMessage();
-    void tempCompVolt();
+    float compensateVoltWithTemperature();
 };
 
 #endif
