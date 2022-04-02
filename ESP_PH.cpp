@@ -53,7 +53,7 @@ float ESP_PH::calculateValueFromVolt() {
 float ESP_PH::compensateVoltWithTemperature(){
     tempSensor.requestTemperatures(); 
     _temperature = tempSensor.getTempCByIndex(0);
-    _voltage = 1.9134 + (_voltage - 1.9134) * (298.15 / (_temperature + 273.15));
+    _voltage = 1913.4 + (_voltage - 1913.4) * (298.15 / (_temperature + 273.15));
     return _voltage;
 }
 
