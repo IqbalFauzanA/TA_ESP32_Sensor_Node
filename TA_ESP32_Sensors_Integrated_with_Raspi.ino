@@ -143,7 +143,7 @@ bool isPiTime(String inStr) {
 
 void dataRequestResponse() {
     for (int i = 0; i < SENSOR_COUNT; i++) {
-        sensors[i]->getFinalVoltAndValue();
+        sensors[i]->updateVoltAndValue();
     }
     sensors[0]->displayTwoLines(F("Send sensor data"), F(""));
     unsigned long timepoint = millis() - DATA_RESEND_PERIOD;

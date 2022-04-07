@@ -88,11 +88,11 @@ void ESP_Sensor::calibration(byte* sensor) {
                 isPressed = false;
             }
             else if (mode_button.isReleased()) { //EXIT CALIB MODE
-                saveCalibVoltAndExit(&isCalibSuccess);
+                saveCalibValueAndExit(&isCalibSuccess);
                 isCalibrating = false;
             }
             if (millis() - timepoint > CALCULATE_PERIOD) {
-                getFinalVoltAndValue();
+                updateVoltAndValue();
                 calibDisplay();
                 timepoint = millis();
             }
@@ -145,7 +145,7 @@ bool ESP_Sensor::isCalibrationTemporaryValueValid(float eepromTemporaryValue) {
     return true;
 }
 
-void ESP_Sensor::saveCalibVoltAndExit(bool* isCalibSuccess) {
+void ESP_Sensor::saveCalibValueAndExit(bool* isCalibSuccess) {
     if (*isCalibSuccess) {
         if ((_eepromCalibParamArray[0].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[0].upperBound)) {
             EEPROM.writeFloat(_eepromStartAddress, *_eepromCalibParamArray[0].calibratedValue);
@@ -206,7 +206,7 @@ void ESP_Sensor::calibDisplay() {
     displayTwoLines(firstLine, secondLine + String(_value,2) + F(" ") + _sensorUnit);
 }
 
-void ESP_Sensor::getFinalVoltAndValue() {
+void ESP_Sensor::updateVoltAndValue() {
     if (_enableSensor) {
         displayTwoLines("Reading " + _sensorName, F(""));
         float volt = 0;

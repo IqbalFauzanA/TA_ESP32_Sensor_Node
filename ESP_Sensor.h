@@ -22,7 +22,7 @@ public:
     ~ESP_Sensor();
     
     void calibration(byte* state);
-    void getFinalVoltAndValue();
+    void updateVoltAndValue();
     void begin();
     void saveNewConfig();
     void saveNewCalib();
@@ -56,7 +56,7 @@ protected:
 
     void calibDisplay();
     void captureCalibValue(bool* calibrationFinish);
-    void saveCalibVoltAndExit(bool* calibrationFinish);
+    void saveCalibValueAndExit(bool* calibrationFinish);
 
     virtual float compensateVoltWithTemperature();
     virtual void readAndAverageVolt(); //to facilitate EC difference
