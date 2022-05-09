@@ -22,14 +22,18 @@
 #define RES2 820.0
 #define ECREF 200.0
 
+Adafruit_ADS1115 ads;
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
 extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
 extern debounceButton cal_button;
 extern debounceButton mode_button;
-extern Adafruit_ADS1115 ads;
 extern Adafruit_SH1106G display;
 
 ESP_EC::ESP_EC() {
+    
+    ads.setGain(GAIN_ONE);
+    ads.begin();
+
     _eepromStartAddress = KVALUEADDR;
     
     //default values

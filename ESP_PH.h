@@ -20,6 +20,10 @@ public:
     ~ESP_PH();                        //initialization
     
 private:
+    float NEUTRAL_LOW_VOLTAGE;
+    float NEUTRAL_HIGH_VOLTAGE;
+    float ACID_LOW_VOLTAGE;
+    float ACID_HIGH_VOLTAGE;
     float _acidVoltage;
     float _neutralVoltage;
          

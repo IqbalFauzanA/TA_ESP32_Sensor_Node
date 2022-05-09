@@ -1,22 +1,28 @@
 #include "ESP_Sensor.h"
 
-extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);// Setup a oneWire instance to communicate with any OneWire devices
+DallasTemperature tempSensor(&oneWire);// Pass our oneWire reference to Dallas Temperature sensor 
 extern Adafruit_SH1106G display;
 extern debounceButton cal_button;
 extern debounceButton mode_button;
 
 ESP_Sensor::ESP_Sensor() {
+    EEPROM.begin(128);
+    tempSensor.begin();//temperature sensor init
+    _sensorNodeNumber = (byte)EEPROM.read(100);
 }
 
 ESP_Sensor::~ESP_Sensor() {
 }
 
 void ESP_Sensor::begin() {
+    Serial.println("Node number: " + String(_sensorNodeNumber));
     _eepromAddress = _eepromStartAddress;
     for (int i = 0; i < _eepromCalibParamCount; i++) {
         float default_value = *_eepromCalibParamArray[i].calibratedValue; //set default_value with initial value
         *_eepromCalibParamArray[i].calibratedValue = EEPROM.readFloat(_eepromAddress); //read the calibrated value from EEPROM
-        if (*_eepromCalibParamArray[i].calibratedValue == float() || isnan(*_eepromCalibParamArray[i].calibratedValue)) {
+        if (*_eepromCalibParamArray[i].calibratedValue == float() || isnan(*_eepromCalibParamArray[i].calibratedValue) ||
+        _resetCalibratedValueToDefault) {
             *_eepromCalibParamArray[i].calibratedValue = default_value; // For new EEPROM, write default value to EEPROM
             EEPROM.writeFloat(_eepromAddress, *_eepromCalibParamArray[i].calibratedValue);
             EEPROM.commit();
@@ -83,6 +89,11 @@ void ESP_Sensor::calibration(byte* sensor) {
         }
         //INSIDE CALIB MODE
         else if (isCalibrating == true) {
+            if (millis() - timepoint > CALCULATE_PERIOD) {
+                updateVoltAndValue();
+                calibDisplay();
+                timepoint = millis();
+            }
             if (isPressed && cal_button.isReleased()) { //CAPTURE CALIB VOLT
                 captureCalibValue(&isCalibSuccess);
                 isPressed = false;
@@ -90,11 +101,6 @@ void ESP_Sensor::calibration(byte* sensor) {
             else if (mode_button.isReleased()) { //EXIT CALIB MODE
                 saveCalibValueAndExit(&isCalibSuccess);
                 isCalibrating = false;
-            }
-            if (millis() - timepoint > CALCULATE_PERIOD) {
-                updateVoltAndValue();
-                calibDisplay();
-                timepoint = millis();
             }
         }
     }
@@ -204,6 +210,9 @@ void ESP_Sensor::calibDisplay() {
         secondLine += F(">");
     }
     displayTwoLines(firstLine, secondLine + String(_value,2) + F(" ") + _sensorUnit);
+    display.println("Voltage (mV): " + String(_voltage,2));
+    display.println(String(_temperature,2) + F(" ^C"));
+    display.display();
 }
 
 void ESP_Sensor::updateVoltAndValue() {
@@ -217,6 +226,8 @@ void ESP_Sensor::updateVoltAndValue() {
         }
         _voltage = volt / m;
         _value = calculateValueFromVolt();
+        Serial.println("Voltage (in mV, max. 3300): " + (String)_voltage);
+        Serial.println(_sensorUnit + "value: " + (String)_value);
     }
     else {
         _voltage = NAN;

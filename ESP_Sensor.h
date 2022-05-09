@@ -2,17 +2,19 @@
 #define _ESP_SENSOR_H_
 
 #include "Arduino.h"
+
 #include "EEPROM.h"
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include "debounceButton.h"
 #include <math.h>
-#include "Adafruit_ADS1015.h"
+
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 
 #define CALCULATE_PERIOD 5000U
+#define ONE_WIRE_BUS 4 // temperature sensor
 
 class ESP_Sensor
 {
@@ -32,6 +34,8 @@ public:
     float _temperature;
     String _sensorName;
     String _sensorUnit;
+    byte _sensorNodeNumber;
+    bool _resetCalibratedValueToDefault = 0;
     int _eepromCalibParamCount; //the amount of value in eeprom array for each sensor
 
     virtual bool isTbdOutOfRange();

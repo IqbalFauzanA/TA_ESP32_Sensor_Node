@@ -6,22 +6,20 @@
 #define MODE_PIN 27 //button for switching to calibration selection mode
 #define CAL_PIN 14 //universal calibration push button, also wake up button
 #define BUTTON_PIN_BITMASK 0x4004000 //set pin 14 and 26 as wake up trigger
-#define ONE_WIRE_BUS 4 // temperature sensor
+
+#define DATA_RESEND_PERIOD 1000U
+
 #define SENSOR_COUNT 3 //total number of sensors, enabled+disabled
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define DISPLAY_I2C_ADDRESS 0x3C
-#define DATA_RESEND_PERIOD 1000U
 
 Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-OneWire oneWire(ONE_WIRE_BUS);// Setup a oneWire instance to communicate with any OneWire devices
-DallasTemperature tempSensor(&oneWire);// Pass our oneWire reference to Dallas Temperature sensor 
 
 ESP_Sensor** sensors = new ESP_Sensor*[SENSOR_COUNT];
 
 debounceButton cal_button(CAL_PIN);
 debounceButton mode_button(MODE_PIN);
-Adafruit_ADS1115 ads;
 
 String piTime; // waktu dari Raspi
 
@@ -38,19 +36,11 @@ void setup() {
     //because ezbutton can't be used for long press, CAL_BUTTON also needs to use ordinary scheme
     pinMode(PI_PIN, INPUT);
     cal_button.setDebounceTime(50);
-    mode_button.setDebounceTime(50);
-    
-    EEPROM.begin(128);
+    mode_button.setDebounceTime(50);    
     
     for (int i = 0; i < SENSOR_COUNT; i++) {
         sensors[i]->begin();
     }
-    
-    ads.setGain(GAIN_ONE);
-    ads.begin();
-
-    
-    tempSensor.begin();//temperature sensor init
     
     display.begin(DISPLAY_I2C_ADDRESS, true);
     display.setTextSize(1);
@@ -153,11 +143,15 @@ void dataRequestResponse() {
         if (millis() - timepoint > DATA_RESEND_PERIOD) {
             Serial.print(F("Data#"));
             Serial.print(F("Time:")); Serial.print(piTime);
-            Serial.print(F(" ;Temperature:"));
-            Serial.print(sensors[0]->_temperature);
-            Serial.print(F(" "));
+            bool isTemperatureSent = 0;
             for (int i = 0; i < SENSOR_COUNT; i++) {
                 if (sensors[i]->_enableSensor) {
+                    if (isTemperatureSent == 0) {
+                        Serial.print(F(" ;Temperature:"));
+                        Serial.print(sensors[i]->_temperature);
+                        Serial.print(F(" "));
+                        isTemperatureSent = 1;
+                    }
                     Serial.print(F(";"));
                     Serial.print(sensors[i]->_sensorName);
                     Serial.print(F(":"));
@@ -180,9 +174,13 @@ void displayMain() {
     display.clearDisplay();
     display.setCursor(0,0);
     display.println("Reading time: " + piTime);
-    display.println("Temp: " + String(sensors[0]->_temperature,2) + "^C");
+    bool isTemperatureDisplayed = 0;
     for (int i = 0; i < SENSOR_COUNT; i++) {
         if (sensors[i]->_enableSensor) {
+            if (isTemperatureDisplayed == 0) {
+                display.println("Temp: " + String(sensors[i]->_temperature,2) + "^C");
+                isTemperatureDisplayed = 1;
+            }
             display.print(sensors[i]->_sensorName + ": ");
             if (sensors[i]->_sensorName == "Tbd") {
                 if(sensors[i]->isTbdOutOfRange()) {

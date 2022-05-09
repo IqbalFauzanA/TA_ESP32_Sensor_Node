@@ -10,12 +10,9 @@
 #include "ESP_PH.h"
 
 #define PHVALUEADDR 0x00 //the start address of the pH calibration parameters stored in the EEPROM
-#define PH_8_VOLTAGE 1122.0
-#define PH_6_VOLTAGE 1478.0
-#define PH_5_VOLTAGE 1654.0
-#define PH_3_VOLTAGE 2010.0
-#define NEUTRAL_VALUE 7.0
-#define ACID_VALUE 4.0
+
+#define NEUTRAL_VALUE 6.86
+#define ACID_VALUE 4.01
 #define PH_SENSOR 35 //pH sensor pin
 
 extern debounceButton cal_button;
@@ -25,13 +22,30 @@ extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temp
 
 
 ESP_PH::ESP_PH() {
-    _eepromStartAddress = PHVALUEADDR;
+    _resetCalibratedValueToDefault = 0;
 
     //default values
-    _acidVoltage = 2032.44;   //buffer solution 4.0 at 25C
-    _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C
-    _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage, PH_8_VOLTAGE, PH_6_VOLTAGE};
-    _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage, PH_5_VOLTAGE, PH_3_VOLTAGE};
+    if (_sensorNodeNumber == 0) {
+        //for sensor node 0
+        NEUTRAL_LOW_VOLTAGE = 1122.0;
+        NEUTRAL_HIGH_VOLTAGE = 1600.0;
+        ACID_LOW_VOLTAGE = 1654.0;
+        ACID_HIGH_VOLTAGE = 2100.0;
+        _eepromStartAddress = PHVALUEADDR;
+        _acidVoltage = 2032.44;   //buffer solution 4.0 at 25C
+        _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C
+    } else {
+        //for sensor node 1
+        NEUTRAL_HIGH_VOLTAGE = 1640.0;
+        NEUTRAL_LOW_VOLTAGE = 1394.0;
+        ACID_HIGH_VOLTAGE = 1272.0;
+        ACID_LOW_VOLTAGE = 1026.0;
+        _eepromStartAddress = 80;
+        _acidVoltage = 1150.0;   //buffer solution 4.0 at 25C
+        _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C
+    }
+    _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage, NEUTRAL_LOW_VOLTAGE, NEUTRAL_HIGH_VOLTAGE};
+    _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage, ACID_LOW_VOLTAGE, ACID_HIGH_VOLTAGE};
     _eepromCalibParamArray[2] = {"", 0, 0, 0, 0};
     
     _sensorName = "PH";
@@ -44,16 +58,16 @@ ESP_PH::~ESP_PH() {
 }
 
 float ESP_PH::calculateValueFromVolt() {
-    float slope = (NEUTRAL_VALUE - ACID_VALUE) / ((_neutralVoltage - 1500.0) / 3.0 - (_acidVoltage - 1500.0) / 3.0); // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
-    float intercept = NEUTRAL_VALUE - slope * (_neutralVoltage - 1500.0) / 3.0;;
-    float value = slope * (_voltage - 1500.0) / 3.0 + intercept; //y = k*x + b
+    float slope = (NEUTRAL_VALUE - ACID_VALUE) / (_neutralVoltage - _acidVoltage); // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
+    float intercept = NEUTRAL_VALUE - slope * _neutralVoltage;
+    float value = slope * _voltage + intercept; //y = k*x + b
     return value;
 }
 
 float ESP_PH::compensateVoltWithTemperature(){
     tempSensor.requestTemperatures(); 
     _temperature = tempSensor.getTempCByIndex(0);
-    _voltage = 1913.4 + (_voltage - 1913.4) * (298.15 / (_temperature + 273.15));
+    _voltage = 1500 + (_voltage - 1500) * (298.15 / (_temperature + 273.15));
     return _voltage;
 }
 

@@ -12,8 +12,8 @@
 
 #define TBDVALUEADDR 0x14
 #define TRANSPARENT_HIGH_VOLTAGE 3300.0
-#define TRANSPARENT_LOW_VOLTAGE 2680.0
-#define TRANSLUCENT_HIGH_VOLTAGE 2673.0
+#define TRANSPARENT_LOW_VOLTAGE 2610.0
+#define TRANSLUCENT_HIGH_VOLTAGE 2600.0
 #define TRANSLUCENT_LOW_VOLTAGE 2455.0
 #define OPAQUE_HIGH_VOLTAGE 2449.0
 #define OPAQUE_LOW_VOLTAGE 2138.0
@@ -28,6 +28,8 @@ extern debounceButton cal_button;
 extern debounceButton mode_button;
 
 ESP_Turbidity::ESP_Turbidity() {
+    _resetCalibratedValueToDefault = 0;
+
     _eepromStartAddress = TBDVALUEADDR;
     
     //default values

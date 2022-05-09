@@ -11,6 +11,7 @@
 #define _ESP_EC_H_
 
 #include "ESP_Sensor.h"
+#include "Adafruit_ADS1015.h"
 
 class ESP_EC: public ESP_Sensor
 {
