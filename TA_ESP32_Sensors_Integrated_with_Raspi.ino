@@ -2,8 +2,6 @@
 #include "ESP_PH.h"
 #include "ESP_Turbidity.h"
 
-//
-
 #define PI_PIN 26 //for GPIO, receive request from Raspi
 #define MODE_PIN 27 //button for switching to calibration selection mode
 #define CAL_PIN 14 //universal calibration push button, also wake up button
