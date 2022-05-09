@@ -34,17 +34,11 @@
 
 #include <Arduino.h>
 
-#define COUNT_FALLING 0
-#define COUNT_RISING  1
-#define COUNT_BOTH    2
-
 class debounceButton
 {
 	private:
 		int btnPin;
 		unsigned long debounceTime;
-		unsigned long count;
-		int countMode;
 
 		int previousSteadyState;  // the previous steady state from the input pin, used to detect pressed and released event
 		int lastSteadyState;      // the last steady state from the input pin
@@ -56,13 +50,8 @@ class debounceButton
 	public:
 		debounceButton(int pin);
 		void setDebounceTime(unsigned long time);
-		int getState(void);
-		int getStateRaw(void);
 		bool isPressed(void);
 		bool isReleased(void);
-		void setCountMode(int mode);
-		unsigned long getCount(void);
-		void resetCount(void);
 		void loop(void);
 };
 

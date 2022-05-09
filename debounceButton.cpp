@@ -34,8 +34,6 @@
 debounceButton::debounceButton(int pin) {
 	btnPin = pin;
 	debounceTime = 0;
-	count = 0;
-	countMode = COUNT_FALLING;
 
 	pinMode(btnPin, INPUT_PULLDOWN);
 
@@ -50,14 +48,6 @@ void debounceButton::setDebounceTime(unsigned long time) {
 	debounceTime = time;
 }
 
-int debounceButton::getState(void) {
-	return lastSteadyState;
-}
-
-int debounceButton::getStateRaw(void) {
-	return digitalRead(btnPin);
-}
-
 bool debounceButton::isPressed(void) {
 	if(previousSteadyState == LOW && lastSteadyState == HIGH)
 		return true;
@@ -70,18 +60,6 @@ bool debounceButton::isReleased(void) {
 		return true;
 	else
 		return false;
-}
-
-void debounceButton::setCountMode(int mode) {
-	countMode = mode;
-}
-
-unsigned long debounceButton::getCount(void) {
-	return count;
-}
-
-void debounceButton::resetCount(void) {
-	count = 0;
 }
 
 void debounceButton::loop(void) {
@@ -103,22 +81,8 @@ void debounceButton::loop(void) {
 	if ((millis() - lastDebounceTime) >= debounceTime) {
 		// whatever the reading is at, it's been there for longer than the debounce
 		// delay, so take it as the actual current state:
-
 		// save the the steady state
 		previousSteadyState = lastSteadyState;
 		lastSteadyState = currentState;
-	}
-
-	if(previousSteadyState != lastSteadyState){
-		if(countMode == COUNT_BOTH)
-			count++;
-		else if(countMode == COUNT_FALLING){
-			if(previousSteadyState == HIGH && lastSteadyState == LOW)
-				count++;
-		}
-		else if(countMode == COUNT_RISING){
-			if(previousSteadyState == LOW && lastSteadyState == HIGH)
-				count++;
-		}
 	}
 }
