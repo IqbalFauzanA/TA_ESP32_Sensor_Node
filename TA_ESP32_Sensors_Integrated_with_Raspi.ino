@@ -3,7 +3,7 @@
 #include "ESP_PH.h"
 #include "ESP_Turbidity.h"
 
-#define BUTTON_PIN_BITMASK 0x4004000 //set pin 14 and 26 as wake up trigger
+#define BUTTON_PIN_BITMASK 0x4004000 //pin 14 & 26 as wakeup trigger
 #define SENSOR_COUNT 3 //total number of sensors, enabled+disabled
 #define DATA_RESEND_PERIOD 1000U
 //
@@ -15,8 +15,8 @@
 //
 
 //ONSITE INPUT
-#define MODE_PIN 27 //button for switching to calibration selection mode
-#define CAL_PIN 14 //universal calibration push button, also wake up button
+#define MODE_PIN 27 //mode button for calibration
+#define CAL_PIN 14 //calibration button, also wake up button
 //
 
 //PI COMMAND
@@ -34,6 +34,7 @@ Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 //ONSITE INPUT
 debounceButton cal_button(CAL_PIN);
 debounceButton mode_button(MODE_PIN);
+//using internal pull-down
 //
 
 //PI COMMAND -> SENSOR DATA
@@ -45,7 +46,8 @@ void setup() {
     Serial.begin(9600);
     Serial.setTimeout(3000); //set serial timeout to 3 seconds
 
-    esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);//wake up trigger
+    esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, 
+                            ESP_EXT1_WAKEUP_ANY_HIGH);//wake up trigger
 
     sensors[0] = new ESP_EC;
     sensors[1] = new ESP_Turbidity;
@@ -68,7 +70,8 @@ void setup() {
     //ONSITE INPUT
     cal_button.setDebounceTime(50);
     mode_button.setDebounceTime(50);  
-    pinMode(CAL_PIN, INPUT);//using external pull down, because it's used for wake up trigger
+    pinMode(CAL_PIN, INPUT);//using external pull-down
+    //(wake up trigger can't use internal pull-down)
     //
 
     //PI COMMAND
@@ -76,9 +79,10 @@ void setup() {
     
     while (digitalRead(PI_PIN)) {  //JIKA MENERIMA REQUEST DARI RASPI
         static unsigned long timepoint = 0U;
-        sensors[0]->displayTwoLines(F("Reading Serial"), F("waiting for cmd"));
+        sensors[0]->displayTwoLines(F("Reading Serial"), 
+                                    F("waiting for cmd"));
         String inString = Serial.readStringUntil('\n');
-        //when sending request, raspi will send local time
+        //while requesting sensor data, raspi will send local time
         if (isPiTime(inString)) { 
             display.println(F("responding req"));
             display.display();
@@ -89,27 +93,32 @@ void setup() {
         else if (inString == "config") {
             display.println(F("configurating"));
             display.display();
-            sendInitAndProcessNewData(&sendConfigInitData, &processNewConfig);
+            sendInitAndProcessNewData(&sendConfigInitData, 
+                                      &processNewConfig);
             break;
         }
         else if (inString == "manualcalib") {
             display.println(F("manual calib"));
             display.display();
-            sendInitAndProcessNewData(&sendCalibInitData, &processNewCalib);
+            sendInitAndProcessNewData(&sendCalibInitData, 
+                                      &processNewCalib);
             break;
         }
         else if (millis() - timepoint > 30000U) {
-            sensors[0]->displayTwoLines(F("Request timeout"), inString);
+            sensors[0]->displayTwoLines(F("Request timeout"), 
+                                        inString);
             delay(1000);
             break;
         }
         else {
-            sensors[0]->displayTwoLines(F("Wrong cmd format "), inString);
+            sensors[0]->displayTwoLines(F("Wrong cmd format "), 
+                                        inString);
         }
     }
-    if (!digitalRead(CAL_PIN)) { //JIKA TIDAK KALIBRASI ATAU SUDAH SELESAI
+    if (!digitalRead(CAL_PIN)) { //JIKA TIDAK/SUDAH SELESAI KALIBRASI
         if (isDisplayMain == false) {
-            sensors[0]->displayTwoLines(F("Press CAL to"), F("wake up & calib."));
+            sensors[0]->displayTwoLines(F("Press CAL to"), 
+                                        F("wake up & calib."));
         }
         esp_deep_sleep_start();
     }
@@ -123,7 +132,7 @@ void loop() {//calibration mode
     cal_button.loop();
     mode_button.loop();
     if (millis() - timepoint > 3000U) {
-        Serial.println(F("CALIB"));//signalling calibration state to raspi
+        Serial.println(F("CALIB"));//telling raspi still calibrating
         timepoint = millis();
     }
 
@@ -132,12 +141,14 @@ void loop() {//calibration mode
     }
     //exit
     else {
-        sensors[0]->displayTwoLines(F("Select mode:"), F("Exit and Sleep"));
+        sensors[0]->displayTwoLines(F("Select mode:"), 
+                                    F("Exit and Sleep"));
         if (mode_button.isReleased()) {
             sensor = 0;
         }
         else if (cal_button.isPressed()) {
-            sensors[0]->displayTwoLines(F("Press CAL to"), F("wake up & calib."));
+            sensors[0]->displayTwoLines(F("Press CAL to"), 
+                                        F("wake up & calib."));
             esp_deep_sleep_start();
         } 
     }
@@ -163,7 +174,8 @@ void dataRequestResponse() {
     sensors[0]->displayTwoLines(F("Send sensor data"), F(""));
     unsigned long timepoint = millis() - DATA_RESEND_PERIOD;
     unsigned long timepoint1 = millis();
-    //keep sending data every 1 seconds for a minute until pi pin turned off (request finished)
+    //keep sending data per second for a minute until pi pin turned off 
+    //(request finished)
     while (digitalRead(PI_PIN) && (millis() - timepoint1 < 60000U)) {
         if (millis() - timepoint > DATA_RESEND_PERIOD) {
             Serial.print(F("Data#"));
@@ -190,7 +202,8 @@ void dataRequestResponse() {
         }
     }
     if (digitalRead(PI_PIN)) {
-        sensors[0]->displayTwoLines(F("Error (timeout)"), F("PI_PIN still on"));
+        sensors[0]->displayTwoLines(F("Error (timeout)"), 
+                                    F("PI_PIN still on"));
     }
     displayMain();
 } 
@@ -205,7 +218,9 @@ void displayMain() {
     for (int i = 0; i < SENSOR_COUNT; i++) {
         if (sensors[i]->_enableSensor) {
             if (isTemperatureDisplayed == 0) {
-                display.println("Temp: " + String(sensors[i]->_temperature,2) + "^C");
+                display.println("Temp: " 
+                              + String(sensors[i]->_temperature,2) 
+                              + "^C");
                 isTemperatureDisplayed = 1;
             }
             display.print(sensors[i]->_sensorName + ": ");
@@ -223,12 +238,14 @@ void displayMain() {
 //
 
 //PI COMMAND -> CALIB & CONFIG
-void sendInitAndProcessNewData(void (*sendInitData)(), void (*processNewData)()) {
+void sendInitAndProcessNewData(void (*sendInitData)(), 
+                               void (*processNewData)()) {
     String inString = "";
     unsigned long timepoint = millis() - DATA_RESEND_PERIOD;
     unsigned long timepoint1 = millis();
-    //keep sending data every 1 seconds for a minute until data received by Raspi
-    while ((inString != "initdatareceived") && (millis() - timepoint1 < 60000U) 
+    //keep sending data per second for a minute until received by Raspi
+    while ((inString != "initdatareceived") && 
+           (millis() - timepoint1 < 60000U) 
             && digitalRead(PI_PIN)) {
         if (millis() - timepoint > DATA_RESEND_PERIOD) {
             sendInitData();
@@ -242,7 +259,8 @@ void sendInitAndProcessNewData(void (*sendInitData)(), void (*processNewData)())
         delay(1000);
     }
     else if (inString == "initdatareceived") {
-        sensors[0]->displayTwoLines(F("Inputting new data"), F("in Raspi"));
+        sensors[0]->displayTwoLines(F("Inputting new data"), 
+                                    F("in Raspi"));
         while ((inString != "newdata") && (inString != "cancel") && 
                 digitalRead(PI_PIN)) {
             inString = Serial.readStringUntil(':');
@@ -252,11 +270,13 @@ void sendInitAndProcessNewData(void (*sendInitData)(), void (*processNewData)())
         }
         else if (inString == "cancel") {
             Serial.println(F("cancelreceived"));
-            sensors[0]->displayTwoLines(F("Data input"), F("cancelled"));
+            sensors[0]->displayTwoLines(F("Data input"), 
+                                        F("cancelled"));
             delay(1000);
         }
         else {
-            sensors[0]->displayTwoLines(F("Raspi is"), F("disconnected"));
+            sensors[0]->displayTwoLines(F("Raspi is"), 
+                                        F("disconnected"));
             delay(1000);
         }
     }
@@ -271,19 +291,21 @@ void sendInitAndProcessNewData(void (*sendInitData)(), void (*processNewData)())
 void sendCalibInitData() {
     Serial.print(F("Data#"));
     for (int i = 0; i < SENSOR_COUNT; i++) {
-        if (sensors[i]->_enableSensor) {
-            Serial.print(sensors[i]->_sensorName);
-            Serial.print(F(":"));
-            for (int j = 0; j < sensors[i]->_eepromCalibParamCount; j++) {
-                Serial.print(sensors[i]->_eepromCalibParamArray[j].name);
-                Serial.print(F("_"));
-                Serial.print(*sensors[i]->_eepromCalibParamArray[j].calibratedValue);
-                Serial.print(F(","));
-            }
-            if (i < SENSOR_COUNT-1) {
-                if (sensors[i+1]->_enableSensor) {
-                    Serial.print(F(";"));
-                }
+        if (!sensors[i]->_enableSensor) {
+            continue;
+        }
+        Serial.print(sensors[i]->_sensorName);
+        Serial.print(F(":"));
+        for (int j = 0; j < sensors[i]->_eepromCalibParamCount; j++) {
+            Serial.print(sensors[i]->_eepromCalibParamArray[j].name);
+            Serial.print(F("_"));
+            Serial.print(*sensors[i]->
+                         _eepromCalibParamArray[j].calibratedValue);
+            Serial.print(F(","));
+        }
+        if (i < SENSOR_COUNT-1) {
+            if (sensors[i+1]->_enableSensor) {
+                Serial.print(F(";"));
             }
         }
     }
@@ -294,12 +316,14 @@ void sendCalibInitData() {
 void processNewCalib() {
     Serial.println(F("newdatareceived"));
     for (int i = 0; i < SENSOR_COUNT; i++) {
-        if (sensors[i]->_enableSensor) {
-            for (int j = 0; j < sensors[i]->_eepromCalibParamCount; j++) {
-                float inFloat = Serial.parseFloat();
-                *sensors[i]->_eepromCalibParamArray[j].calibratedValue = inFloat;
-                sensors[i]->saveNewCalib();
-            }
+        if (!sensors[i]->_enableSensor) {
+            continue;
+        }
+        for (int j = 0; j < sensors[i]->_eepromCalibParamCount; j++) {
+            float inFloat = Serial.parseFloat();
+            *sensors[i]->_eepromCalibParamArray[j].calibratedValue 
+                       = inFloat;
+            sensors[i]->saveNewCalib();
         }
     }
     sensors[0]->displayTwoLines(F("Manual calib"), F("successful"));
