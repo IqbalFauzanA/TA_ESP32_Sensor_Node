@@ -1,58 +1,81 @@
+//GENERAL
 #include "ESP_EC.h"
 #include "ESP_PH.h"
 #include "ESP_Turbidity.h"
 
-#define PI_PIN 26 //for GPIO, receive request from Raspi
-#define MODE_PIN 27 //button for switching to calibration selection mode
-#define CAL_PIN 14 //universal calibration push button, also wake up button
 #define BUTTON_PIN_BITMASK 0x4004000 //set pin 14 and 26 as wake up trigger
-
-#define DATA_RESEND_PERIOD 1000U
-
 #define SENSOR_COUNT 3 //total number of sensors, enabled+disabled
+#define DATA_RESEND_PERIOD 1000U
+//
+
+//ONSITE OUTPUT
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define DISPLAY_I2C_ADDRESS 0x3C
+//
 
-Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+//ONSITE INPUT
+#define MODE_PIN 27 //button for switching to calibration selection mode
+#define CAL_PIN 14 //universal calibration push button, also wake up button
+//
 
+//PI COMMAND
+#define PI_PIN 26 //for GPIO, receive request from Raspi
+//
+
+//GENERAL
 ESP_Sensor** sensors = new ESP_Sensor*[SENSOR_COUNT];
+//
 
+//ONSITE OUTPUT
+Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+//
+
+//ONSITE INPUT
 debounceButton cal_button(CAL_PIN);
 debounceButton mode_button(MODE_PIN);
+//
 
+//PI COMMAND -> SENSOR DATA
 String piTime; // waktu dari Raspi
+//
 
 void setup() {
-    
+    //GENERAL
+    Serial.begin(9600);
+    Serial.setTimeout(3000); //set serial timeout to 3 seconds
+
+    esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);//wake up trigger
+
     sensors[0] = new ESP_EC;
     sensors[1] = new ESP_Turbidity;
     sensors[2] = new ESP_PH;
     
-    Serial.begin(9600);
-    Serial.setTimeout(3000); //set serial timeout to 3 seconds
-    
-    pinMode(CAL_PIN, INPUT);//using external pull down, because it's used for wake up trigger
-    //because ezbutton can't be used for long press, CAL_BUTTON also needs to use ordinary scheme
-    pinMode(PI_PIN, INPUT);
-    cal_button.setDebounceTime(50);
-    mode_button.setDebounceTime(50);    
-    
     for (int i = 0; i < SENSOR_COUNT; i++) {
         sensors[i]->begin();
     }
-    
+    //
+
+    //ONSITE OUTPUT
     display.begin(DISPLAY_I2C_ADDRESS, true);
     display.setTextSize(1);
     display.setTextColor(SH110X_WHITE);
     display.clearDisplay();
-    
-    esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);//wake up trigger
-    
-    //JIKA MENERIMA REQUEST DARI RASPI 
+
     bool isDisplayMain = false;
-    unsigned long timepoint = 0U;
-    while (digitalRead(PI_PIN)) { 
+    //
+
+    //ONSITE INPUT
+    cal_button.setDebounceTime(50);
+    mode_button.setDebounceTime(50);  
+    pinMode(CAL_PIN, INPUT);//using external pull down, because it's used for wake up trigger
+    //
+
+    //PI COMMAND
+    pinMode(PI_PIN, INPUT);  
+    
+    while (digitalRead(PI_PIN)) {  //JIKA MENERIMA REQUEST DARI RASPI
+        static unsigned long timepoint = 0U;
         sensors[0]->displayTwoLines(F("Reading Serial"), F("waiting for cmd"));
         String inString = Serial.readStringUntil('\n');
         //when sending request, raspi will send local time
@@ -84,17 +107,17 @@ void setup() {
             sensors[0]->displayTwoLines(F("Wrong cmd format "), inString);
         }
     }
-    //JIKA TIDAK KALIBRASI ATAU SUDAH SELESAI
-    if (!digitalRead(CAL_PIN)) {
+    if (!digitalRead(CAL_PIN)) { //JIKA TIDAK KALIBRASI ATAU SUDAH SELESAI
         if (isDisplayMain == false) {
             sensors[0]->displayTwoLines(F("Press CAL to"), F("wake up & calib."));
         }
         esp_deep_sleep_start();
     }
+    //
 }
 
-//calibration mode
-void loop() {
+//ONSITE (CALIBRATION)
+void loop() {//calibration mode
     static unsigned long timepoint = 0U;
     static byte sensor = 0;
     cal_button.loop();
@@ -119,7 +142,9 @@ void loop() {
         } 
     }
 }
+//
 
+//PI COMMAND -> SENSOR DATA
 bool isPiTime(String inStr) {
     if (isdigit(inStr[0]) && isdigit(inStr[1]) && (inStr[2] == ':') && 
         isdigit(inStr[3]) && isdigit(inStr[4]) && (inStr[5] == NULL)) {
@@ -169,7 +194,9 @@ void dataRequestResponse() {
     }
     displayMain();
 } 
+//
 
+//ONSITE OUTPUT
 void displayMain() {
     display.clearDisplay();
     display.setCursor(0,0);
@@ -193,7 +220,9 @@ void displayMain() {
     }
     display.display();
 }
+//
 
+//PI COMMAND -> CALIB & CONFIG
 void sendInitAndProcessNewData(void (*sendInitData)(), void (*processNewData)()) {
     String inString = "";
     unsigned long timepoint = millis() - DATA_RESEND_PERIOD;
@@ -236,7 +265,9 @@ void sendInitAndProcessNewData(void (*sendInitData)(), void (*processNewData)())
         delay(1000);
     }
 }
+//
 
+//PI COMMAND CALIB
 void sendCalibInitData() {
     Serial.print(F("Data#"));
     for (int i = 0; i < SENSOR_COUNT; i++) {
@@ -273,7 +304,9 @@ void processNewCalib() {
     }
     sensors[0]->displayTwoLines(F("Manual calib"), F("successful"));
 }
+//
 
+//PI COMMAND -> CONFIG
 void sendConfigInitData() {
     Serial.print(F("Data#"));
     for (int i = 0; i < SENSOR_COUNT; i++) {
@@ -294,3 +327,4 @@ void processNewConfig() {
     }
     sensors[0]->displayTwoLines(F("Configuration"), F("successful"));
 }
+//
