@@ -9,25 +9,9 @@
 
 #include "ESP_EC.h"
 
-#define KVALUEADDR 0xA //the start address of the K value stored in the EEPROM
-#define EC_1413_LOW_VOLTAGE 115.0 //0.7
-#define EC_1413_HIGH_VOLTAGE 295.0 //1.8
-#define EC_276_LOW_VOLTAGE 320.0 //1.95
-#define EC_276_HIGH_VOLTAGE 525.0 //3.2
-#define EC_1288_LOW_VOLTAGE 1312.0 //8
-#define EC_1288_HIGH_VOLTAGE 2755.0 //16.8
-#define EC_LOW_VALUE 1.413
-#define EC_HIGH_VALUE_1 2.76
-#define EC_HIGH_VALUE_2 12.88
-#define RES2 820.0
-#define ECREF 200.0
-
 Adafruit_ADS1115 ads;
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
 extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
-extern debounceButton cal_button;
-extern debounceButton mode_button;
-extern Adafruit_SH1106G display;
 
 ESP_EC::ESP_EC() {
     
@@ -70,10 +54,11 @@ float ESP_EC::calculateValueFromVolt() {
 }
 
 float ESP_EC::compensateVoltWithTemperature() {
+    float voltage;
     tempSensor.requestTemperatures(); 
     _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
-    _voltage = _voltage / (1.0 + 0.0185 * (_temperature - 25.0)); //temperature compensation
-    return _voltage;
+    voltage = _voltage / (1.0 + 0.0185 * (_temperature - 25.0)); //temperature compensation
+    return voltage;
 }
 
 void ESP_EC::readAndAverageVolt() {

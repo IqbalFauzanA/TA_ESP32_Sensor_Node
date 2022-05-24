@@ -12,24 +12,23 @@
 
 #include "ESP_Sensor.h"
 
-
 class ESP_PH: public ESP_Sensor
 {
-public:
-    ESP_PH();
-    ~ESP_PH();                        //initialization
-    
-private:
-    float NEUTRAL_LOW_VOLTAGE;
-    float NEUTRAL_HIGH_VOLTAGE;
-    float ACID_LOW_VOLTAGE;
-    float ACID_HIGH_VOLTAGE;
-    float _acidVoltage;
-    float _neutralVoltage;
-         
-    float calculateValueFromVolt();
-    void calibStartMessage();
-    float compensateVoltWithTemperature();
+    public:
+        ESP_PH();
+        ~ESP_PH();                        
+        
+    private:
+        float NEUTRAL_LOW_VOLTAGE;
+        float NEUTRAL_HIGH_VOLTAGE;
+        float ACID_LOW_VOLTAGE;
+        float ACID_HIGH_VOLTAGE;
+        float _acidVoltage;
+        float _neutralVoltage;
+            
+        float calculateValueFromVolt();
+        float compensateVoltWithTemperature();
+        void calibStartMessage();
 };
 
 #endif

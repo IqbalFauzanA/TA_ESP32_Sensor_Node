@@ -9,14 +9,12 @@
 
 #include "ESP_PH.h"
 
-#define PHVALUEADDR 0x00 //the start address of the pH calibration parameters stored in the EEPROM
+#define PHVALUEADDR 0 //the start address of the pH calibration parameters stored in the EEPROM
 
 #define NEUTRAL_VALUE 6.86
 #define ACID_VALUE 4.01
 #define PH_SENSOR 35 //pH sensor pin
 
-extern debounceButton cal_button;
-extern debounceButton mode_button;
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
 extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
 
@@ -27,7 +25,7 @@ ESP_PH::ESP_PH() {
     //default values
     if (_sensorNodeNumber == 0) {
         //for sensor node 0
-        NEUTRAL_LOW_VOLTAGE = 1122.0;
+        NEUTRAL_LOW_VOLTAGE = 1122.0; //in mV
         NEUTRAL_HIGH_VOLTAGE = 1600.0;
         ACID_LOW_VOLTAGE = 1654.0;
         ACID_HIGH_VOLTAGE = 2100.0;
@@ -64,17 +62,18 @@ float ESP_PH::calculateValueFromVolt() {
     return value;
 }
 
-float ESP_PH::compensateVoltWithTemperature(){
+float ESP_PH::compensateVoltWithTemperature() {
+    float voltage;
     tempSensor.requestTemperatures(); 
     _temperature = tempSensor.getTempCByIndex(0);
-    _voltage = 1500 + (_voltage - 1500) * (298.15 / (_temperature + 273.15));
-    return _voltage;
+    voltage = 1500 + (_voltage - 1500) * (298.15 / (_temperature + 273.15));
+    return voltage;
 }
 
 void ESP_PH::calibStartMessage() {
     Serial.println();
     Serial.println(F(">>>Enter PH Calibration Mode<<<"));
     Serial.println(F(">>>Please put the probe into the 4.0 or 7.0 standard buffer solution.<<<"));
-    Serial.println(F(">>>Calibrate all for best result.<<<"));
+    Serial.println(F(">>>Calibrate all for the best result.<<<"));
     Serial.println();
 }

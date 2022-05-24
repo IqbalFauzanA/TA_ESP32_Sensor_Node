@@ -1,20 +1,34 @@
 #ifndef _ESP_SENSOR_H_
 #define _ESP_SENSOR_H_
 
-#include "Arduino.h"
+//GENERAL
+#include <Arduino.h>
+#include <math.h>
+#include <EEPROM.h>
+//
 
-#include "EEPROM.h"
+//PI COMMAND -> SENSOR DATA
 #include <DallasTemperature.h>
 #include <OneWire.h>
-#include "debounceButton.h"
-#include <math.h>
+//
 
+//ONSITE INPUT
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
+//
 
+//ONSITE OUTPUT
+#include "debounceButton.h"
+//
+
+//ONSITE (CALIBRATION)
 #define CALCULATE_PERIOD 5000U
+//
+
+//PI COMMAND -> SENSOR DATA
 #define ONE_WIRE_BUS 4 // temperature sensor
+//
 
 class ESP_Sensor
 {

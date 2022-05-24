@@ -10,22 +10,8 @@
 
 #include "ESP_Turbidity.h"
 
-#define TBDVALUEADDR 0x14
-#define TRANSPARENT_HIGH_VOLTAGE 3300.0
-#define TRANSPARENT_LOW_VOLTAGE 2610.0
-#define TRANSLUCENT_HIGH_VOLTAGE 2600.0
-#define TRANSLUCENT_LOW_VOLTAGE 2455.0
-#define OPAQUE_HIGH_VOLTAGE 2449.0
-#define OPAQUE_LOW_VOLTAGE 2138.0
-#define TRANSPARENT_VALUE 0.0
-#define TRANSLUCENT_VALUE 1000.0
-#define OPAQUE_VALUE 2000.0
-#define TBD_SENSOR 32 //turbidity sensor pin
-
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
 extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
-extern debounceButton cal_button;
-extern debounceButton mode_button;
 
 ESP_Turbidity::ESP_Turbidity() {
     _resetCalibratedValueToDefault = 0;
@@ -97,10 +83,11 @@ float ESP_Turbidity::calculateValueFromVolt() {
 }
 
 float ESP_Turbidity::compensateVoltWithTemperature() {
+    float voltage;
     tempSensor.requestTemperatures(); 
     _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
-    _voltage = (1455*_voltage-3795*_temperature+94875)/(2*_temperature+1405);
-    return _voltage;
+    voltage = (1455*_voltage-3795*_temperature+94875)/(2*_temperature+1405);
+    return voltage;
 }
 
 void ESP_Turbidity::calibStartMessage() {

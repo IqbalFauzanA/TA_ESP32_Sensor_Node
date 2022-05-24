@@ -1,14 +1,12 @@
 #include "ESP_Sensor.h"
 
-OneWire oneWire(ONE_WIRE_BUS);// Setup a oneWire instance to communicate with any OneWire devices
-DallasTemperature tempSensor(&oneWire);// Pass our oneWire reference to Dallas Temperature sensor 
 extern Adafruit_SH1106G display;
 extern debounceButton cal_button;
 extern debounceButton mode_button;
+extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
+extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
 
 ESP_Sensor::ESP_Sensor() {
-    EEPROM.begin(128);
-    tempSensor.begin();//temperature sensor init
     _sensorNodeNumber = (byte)EEPROM.read(100);
 }
 
@@ -226,8 +224,9 @@ void ESP_Sensor::updateVoltAndValue() {
         }
         _voltage = volt / m;
         _value = calculateValueFromVolt();
-        Serial.println("Voltage (in mV, max. 3300): " + (String)_voltage);
-        Serial.println(_sensorUnit + "value: " + (String)_value);
+        Serial.println("Temperature: " + (String)_temperature + " ^C");
+        Serial.println("Voltage (max. 3300): " + (String)_voltage + " mV");
+        Serial.println(_sensorName + " value: " + (String)_value + " " + _sensorUnit);
     }
     else {
         _voltage = NAN;
@@ -268,5 +267,7 @@ bool ESP_Sensor::isTbdOutOfRange() {
 }
 
 float ESP_Sensor::compensateVoltWithTemperature() {//default, no temp compensation for volt
+    tempSensor.requestTemperatures(); 
+    _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     return _voltage;
 }

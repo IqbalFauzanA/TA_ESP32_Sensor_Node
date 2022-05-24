@@ -2,10 +2,11 @@
 #include "ESP_EC.h"
 #include "ESP_PH.h"
 #include "ESP_Turbidity.h"
+#include "ESP_NH3N.h"
 
 #define BUTTON_PIN_BITMASK 0x4004000 //pin 14 & 26 as wakeup trigger
-#define SENSOR_COUNT 3 //total number of sensors, enabled+disabled
-#define DATA_RESEND_PERIOD 1000U
+#define SENSOR_COUNT 4 //total number of main sensors, enabled+disabled
+#define DATA_RESEND_PERIOD 1000U//resend data per 1000 ms
 //
 
 //ONSITE OUTPUT
@@ -21,10 +22,15 @@
 
 //PI COMMAND
 #define PI_PIN 26 //for GPIO, receive request from Raspi
+
+String piTime; // waktu dari Raspi
 //
 
 //GENERAL
 ESP_Sensor** sensors = new ESP_Sensor*[SENSOR_COUNT];
+
+OneWire oneWire(ONE_WIRE_BUS);// Setup a oneWire instance to communicate with any OneWire devices
+DallasTemperature tempSensor(&oneWire);// Pass our oneWire reference to Dallas Temperature sensor 
 //
 
 //ONSITE OUTPUT
@@ -37,14 +43,14 @@ debounceButton mode_button(MODE_PIN);
 //using internal pull-down
 //
 
-//PI COMMAND -> SENSOR DATA
-String piTime; // waktu dari Raspi
-//
-
 void setup() {
     //GENERAL
     Serial.begin(9600);
     Serial.setTimeout(3000); //set serial timeout to 3 seconds
+
+    EEPROM.begin(128);
+    
+    tempSensor.begin();//temperature sensor init
 
     esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, 
                             ESP_EXT1_WAKEUP_ANY_HIGH);//wake up trigger
@@ -52,6 +58,7 @@ void setup() {
     sensors[0] = new ESP_EC;
     sensors[1] = new ESP_Turbidity;
     sensors[2] = new ESP_PH;
+    sensors[3] = new ESP_NH3N;
     
     for (int i = 0; i < SENSOR_COUNT; i++) {
         sensors[i]->begin();
@@ -104,7 +111,7 @@ void setup() {
                                       &processNewCalib);
             break;
         }
-        else if (millis() - timepoint > 30000U) {
+        else if (millis() - timepoint > 30000U) {//timeout
             sensors[0]->displayTwoLines(F("Request timeout"), 
                                         inString);
             delay(1000);
@@ -115,7 +122,7 @@ void setup() {
                                         inString);
         }
     }
-    if (!digitalRead(CAL_PIN)) { //JIKA TIDAK/SUDAH SELESAI KALIBRASI
+    if (!digitalRead(CAL_PIN)) { //JIKA TIDAK KALIBRASI
         if (isDisplayMain == false) {
             sensors[0]->displayTwoLines(F("Press CAL to"), 
                                         F("wake up & calib."));
@@ -155,7 +162,7 @@ void loop() {//calibration mode
 }
 //
 
-//PI COMMAND -> SENSOR DATA
+//PI COMMAND
 bool isPiTime(String inStr) {
     if (isdigit(inStr[0]) && isdigit(inStr[1]) && (inStr[2] == ':') && 
         isdigit(inStr[3]) && isdigit(inStr[4]) && (inStr[5] == NULL)) {
@@ -166,7 +173,9 @@ bool isPiTime(String inStr) {
         return false;
     }
 }
+//
 
+//PI COMMAND -> SENSOR DATA
 void dataRequestResponse() {
     for (int i = 0; i < SENSOR_COUNT; i++) {
         sensors[i]->updateVoltAndValue();
@@ -174,8 +183,8 @@ void dataRequestResponse() {
     sensors[0]->displayTwoLines(F("Send sensor data"), F(""));
     unsigned long timepoint = millis() - DATA_RESEND_PERIOD;
     unsigned long timepoint1 = millis();
-    //keep sending data per second for a minute until pi pin turned off 
-    //(request finished)
+    //keep sending data per second for a minute 
+    //until pi pin turned off (request finished)
     while (digitalRead(PI_PIN) && (millis() - timepoint1 < 60000U)) {
         if (millis() - timepoint > DATA_RESEND_PERIOD) {
             Serial.print(F("Data#"));
@@ -204,6 +213,7 @@ void dataRequestResponse() {
     if (digitalRead(PI_PIN)) {
         sensors[0]->displayTwoLines(F("Error (timeout)"), 
                                     F("PI_PIN still on"));
+        delay(1000);
     }
     displayMain();
 } 
@@ -238,15 +248,13 @@ void displayMain() {
 //
 
 //PI COMMAND -> CALIB & CONFIG
-void sendInitAndProcessNewData(void (*sendInitData)(), 
-                               void (*processNewData)()) {
+void sendInitAndProcessNewData(void (*sendInitData)(), void (*processNewData)()) {
     String inString = "";
     unsigned long timepoint = millis() - DATA_RESEND_PERIOD;
     unsigned long timepoint1 = millis();
     //keep sending data per second for a minute until received by Raspi
     while ((inString != "initdatareceived") && 
-           (millis() - timepoint1 < 60000U) 
-            && digitalRead(PI_PIN)) {
+           (millis() - timepoint1 < 60000U) && digitalRead(PI_PIN)) {
         if (millis() - timepoint > DATA_RESEND_PERIOD) {
             sendInitData();
             timepoint = millis();
@@ -287,12 +295,18 @@ void sendInitAndProcessNewData(void (*sendInitData)(),
 }
 //
 
-//PI COMMAND CALIB
+//PI COMMAND -> CALIB
 void sendCalibInitData() {
     Serial.print(F("Data#"));
+    bool isStartOfString = true;
     for (int i = 0; i < SENSOR_COUNT; i++) {
         if (!sensors[i]->_enableSensor) {
             continue;
+        }
+        if (isStartOfString == true) {
+            isStartOfString = false;
+        } else {
+            Serial.print(F(";"));
         }
         Serial.print(sensors[i]->_sensorName);
         Serial.print(F(":"));
@@ -302,11 +316,6 @@ void sendCalibInitData() {
             Serial.print(*sensors[i]->
                          _eepromCalibParamArray[j].calibratedValue);
             Serial.print(F(","));
-        }
-        if (i < SENSOR_COUNT-1) {
-            if (sensors[i+1]->_enableSensor) {
-                Serial.print(F(";"));
-            }
         }
     }
     Serial.println();
