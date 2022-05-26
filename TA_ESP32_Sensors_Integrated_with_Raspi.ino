@@ -48,7 +48,7 @@ void setup() {
     Serial.begin(9600);
     Serial.setTimeout(3000); //set serial timeout to 3 seconds
 
-    EEPROM.begin(128);
+    EEPROM.begin(256);
     
     tempSensor.begin();//temperature sensor init
 
