@@ -9,11 +9,7 @@
 
 #include "ESP_PH.h"
 
-#define PHVALUEADDR 0 //the start address of the pH calibration parameters stored in the EEPROM
 
-#define NEUTRAL_VALUE 6.86
-#define ACID_VALUE 4.01
-#define PH_SENSOR 35 //pH sensor pin
 
 extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
 extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
@@ -22,26 +18,10 @@ extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temp
 ESP_PH::ESP_PH() {
     _resetCalibratedValueToDefault = 0;
 
-    //default values
-    if (_sensorNodeNumber == 0) {
-        //for sensor node 0
-        NEUTRAL_LOW_VOLTAGE = 1122.0; //in mV
-        NEUTRAL_HIGH_VOLTAGE = 1600.0;
-        ACID_LOW_VOLTAGE = 1654.0;
-        ACID_HIGH_VOLTAGE = 2100.0;
-        _eepromStartAddress = PHVALUEADDR;
-        _acidVoltage = 2032.44;   //buffer solution 4.0 at 25C
-        _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C
-    } else {
-        //for sensor node 1
-        NEUTRAL_HIGH_VOLTAGE = 1640.0;
-        NEUTRAL_LOW_VOLTAGE = 1394.0;
-        ACID_HIGH_VOLTAGE = 1272.0;
-        ACID_LOW_VOLTAGE = 1026.0;
-        _eepromStartAddress = 80;
-        _acidVoltage = 1150.0;   //buffer solution 4.0 at 25C
-        _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C
-    }
+    _eepromStartAddress = PHVALUEADDR;
+    _acidVoltage = 1150.0;   //buffer solution 4.0 at 25C 
+    _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C 
+    
     _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage, NEUTRAL_LOW_VOLTAGE, NEUTRAL_HIGH_VOLTAGE};
     _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage, ACID_LOW_VOLTAGE, ACID_HIGH_VOLTAGE};
     _eepromCalibParamArray[2] = {"", 0, 0, 0, 0};

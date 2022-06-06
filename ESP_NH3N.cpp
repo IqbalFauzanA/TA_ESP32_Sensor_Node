@@ -7,25 +7,10 @@ ESP_NH3N::ESP_NH3N() {
     _resetCalibratedValueToDefault = 0;
 
     //default values
-    if (_sensorNodeNumber == 0) {
-        //for sensor node 0
-        WEAK_BASE_LOW_VOLTAGE = 347.6;
-        WEAK_BASE_HIGH_VOLTAGE = 392.5;
-        STRONG_BASE_LOW_VOLTAGE = 302.5;
-        STRONG_BASE_HIGH_VOLTAGE = 347.4;
-        _eepromStartAddress = NH3NVALUEADDR;
-        _strongBaseVoltage = 325.0;   //strong base default votlage
-        _weakBaseVoltage = 370.0; //weak base default voltage
-    } else if (_sensorNodeNumber == 1) {
-        //for sensor node 1
-        WEAK_BASE_HIGH_VOLTAGE = 2499.0;
-        WEAK_BASE_LOW_VOLTAGE = 2300.0;
-        STRONG_BASE_HIGH_VOLTAGE = 2700.0;
-        STRONG_BASE_LOW_VOLTAGE = 2501.0;
-        _eepromStartAddress = 90;
-        _strongBaseVoltage = 2600.0; 
-        _weakBaseVoltage = 2400.0; 
-    }
+    _eepromStartAddress = NH3NVALUEADDR;
+    _strongBaseVoltage = 2600.0; 
+    _weakBaseVoltage = 2400.0;
+
     _eepromCalibParamArray[0] = {"Weak Base Voltage", WEAK_BASE_VALUE, &_weakBaseVoltage, WEAK_BASE_LOW_VOLTAGE, WEAK_BASE_HIGH_VOLTAGE};
     _eepromCalibParamArray[1] = {"Strong Base Voltage", STRONG_BASE_VALUE, &_strongBaseVoltage, STRONG_BASE_LOW_VOLTAGE, STRONG_BASE_HIGH_VOLTAGE};
     _eepromCalibParamArray[2] = {"", 0, 0, 0, 0};

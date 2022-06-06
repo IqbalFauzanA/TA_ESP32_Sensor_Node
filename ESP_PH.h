@@ -12,6 +12,16 @@
 
 #include "ESP_Sensor.h"
 
+#define PHVALUEADDR 0 //the start address of the pH calibration parameters stored in the EEPROM
+
+#define NEUTRAL_VALUE 6.86
+#define ACID_VALUE 4.01
+#define PH_SENSOR 35 //pH sensor pin
+#define NEUTRAL_HIGH_VOLTAGE 1640.0
+#define NEUTRAL_LOW_VOLTAGE 1394.0
+#define ACID_HIGH_VOLTAGE 1272.0
+#define ACID_LOW_VOLTAGE 1026.0
+
 class ESP_PH: public ESP_Sensor
 {
     public:
@@ -19,10 +29,6 @@ class ESP_PH: public ESP_Sensor
         ~ESP_PH();                        
         
     private:
-        float NEUTRAL_LOW_VOLTAGE;
-        float NEUTRAL_HIGH_VOLTAGE;
-        float ACID_LOW_VOLTAGE;
-        float ACID_HIGH_VOLTAGE;
         float _acidVoltage;
         float _neutralVoltage;
             

@@ -8,7 +8,6 @@ extern DallasTemperature tempSensor; // Pass our oneWire reference to Dallas Tem
 
 ESP_Sensor::ESP_Sensor()
 {
-    _sensorNodeNumber = (byte)EEPROM.read(100);
 }
 
 ESP_Sensor::~ESP_Sensor()
@@ -17,7 +16,6 @@ ESP_Sensor::~ESP_Sensor()
 
 void ESP_Sensor::begin()
 {
-    Serial.println("Node number: " + String(_sensorNodeNumber));
     _eepromAddress = _eepromStartAddress;
     for (int i = 0; i < _eepromCalibParamCount; i++)
     {

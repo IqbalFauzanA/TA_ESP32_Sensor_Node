@@ -50,6 +50,8 @@ void setup() {
 
     EEPROM.begin(256);
     
+    Serial.println("Node number: " + String((byte)EEPROM.read(100)));
+
     tempSensor.begin();//temperature sensor init
 
     esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, 
