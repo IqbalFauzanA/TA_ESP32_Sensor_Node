@@ -193,20 +193,18 @@ void dataRequestResponse() {
             Serial.print(F("Time:")); Serial.print(piTime);
             bool isTemperatureSent = 0;
             for (int i = 0; i < SENSOR_COUNT; i++) {
-                if (sensors[i]->_enableSensor) {
-                    if (isTemperatureSent == 0) {
-                        Serial.print(F(" ;Temperature:"));
-                        Serial.print(sensors[i]->_temperature);
-                        Serial.print(F(" "));
-                        isTemperatureSent = 1;
-                    }
-                    Serial.print(F(";"));
-                    Serial.print(sensors[i]->_sensorName);
-                    Serial.print(F(":"));
-                    Serial.print(sensors[i]->_value);
+                if (isTemperatureSent == 0) {
+                    Serial.print(F(" ;Temperature:"));
+                    Serial.print(sensors[i]->_temperature);
                     Serial.print(F(" "));
-                    Serial.print(sensors[i]->_sensorUnit);
+                    isTemperatureSent = 1;
                 }
+                Serial.print(F(";"));
+                Serial.print(sensors[i]->_sensorName);
+                Serial.print(F(":"));
+                Serial.print(sensors[i]->_value);
+                Serial.print(F(" "));
+                Serial.print(sensors[i]->_sensorUnit);
             }
             Serial.println(F(";"));
             timepoint = millis();

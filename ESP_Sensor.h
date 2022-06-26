@@ -47,7 +47,6 @@ public:
     float _temperature;
     String _sensorName;
     String _sensorUnit;
-    byte _sensorNodeNumber;
     bool _resetCalibratedValueToDefault = 0;
     int _eepromCalibParamCount; // the amount of value in eeprom array for each sensor
 

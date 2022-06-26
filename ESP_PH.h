@@ -16,11 +16,11 @@
 
 #define NEUTRAL_VALUE 6.86
 #define ACID_VALUE 4.01
-#define PH_SENSOR 35 //pH sensor pin
-#define NEUTRAL_HIGH_VOLTAGE 1640.0
-#define NEUTRAL_LOW_VOLTAGE 1394.0
-#define ACID_HIGH_VOLTAGE 1272.0
-#define ACID_LOW_VOLTAGE 1026.0
+#define PH_SENSOR 32 //pH sensor pin
+#define NEUTRAL_HIGH_VOLTAGE 3300.0
+#define NEUTRAL_LOW_VOLTAGE 1350.0
+#define ACID_HIGH_VOLTAGE 1350.0
+#define ACID_LOW_VOLTAGE 0.0
 
 class ESP_PH: public ESP_Sensor
 {

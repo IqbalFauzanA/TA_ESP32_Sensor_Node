@@ -19,9 +19,9 @@ ESP_Turbidity::ESP_Turbidity() {
     _eepromStartAddress = TBDVALUEADDR;
     
     //default values
-    _transparentVoltage = 2600;   //solution 0.0 NTU at 25C 2460
-    _translucentVoltage = 2450; //solution 304.5 NTU at 25C 2320
-    _opaqueVoltage = 2300; //solution 511.5 NTU at 25C 2170
+    _transparentVoltage = 2900;   //solution 0.0 NTU at 25C 2460
+    _translucentVoltage = 2700; //solution 304.5 NTU at 25C 2320
+    _opaqueVoltage = 2500; //solution 511.5 NTU at 25C 2170
     _eepromCalibParamArray[0] = {"Opaque (511.5 NTU) Voltage", OPAQUE_VALUE, &_opaqueVoltage, OPAQUE_LOW_VOLTAGE, OPAQUE_HIGH_VOLTAGE};
     _eepromCalibParamArray[1] = {"Translucent (304.5 NTU) Voltage", TRANSLUCENT_VALUE, &_translucentVoltage, TRANSLUCENT_LOW_VOLTAGE, TRANSLUCENT_HIGH_VOLTAGE};
     _eepromCalibParamArray[2] = {"Transparent (0 NTU) Voltage", TRANSPARENT_VALUE, &_transparentVoltage, TRANSPARENT_LOW_VOLTAGE, TRANSPARENT_HIGH_VOLTAGE};

@@ -19,8 +19,8 @@ ESP_PH::ESP_PH() {
     _resetCalibratedValueToDefault = 0;
 
     _eepromStartAddress = PHVALUEADDR;
-    _acidVoltage = 1150.0;   //buffer solution 4.0 at 25C 
-    _neutralVoltage = 1500.0; //buffer solution 7.0 at 25C 
+    _acidVoltage = 1215.0;   //buffer solution 4.0 at 25C 
+    _neutralVoltage = 1600.0; //buffer solution 7.0 at 25C 
     
     _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage, NEUTRAL_LOW_VOLTAGE, NEUTRAL_HIGH_VOLTAGE};
     _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage, ACID_LOW_VOLTAGE, ACID_HIGH_VOLTAGE};
