@@ -14,12 +14,6 @@
 #include "ESP_Sensor.h"
 
 #define TBDVALUEADDR 20
-#define TRANSPARENT_HIGH_VOLTAGE 3300.0
-#define TRANSPARENT_LOW_VOLTAGE 2850.0
-#define TRANSLUCENT_HIGH_VOLTAGE 2850.0
-#define TRANSLUCENT_LOW_VOLTAGE 2600.0
-#define OPAQUE_HIGH_VOLTAGE 2600.0
-#define OPAQUE_LOW_VOLTAGE 0.0
 #define TRANSPARENT_VALUE 0.0
 #define TRANSLUCENT_VALUE 304.5
 #define OPAQUE_VALUE 511.5
@@ -40,7 +34,6 @@ class ESP_Turbidity: public ESP_Sensor
         
         float calculateValueFromVolt();
         float compensateVoltWithTemperature();
-        void calibStartMessage();
 };
 
 #endif

@@ -19,12 +19,11 @@ ESP_PH::ESP_PH() {
     _resetCalibratedValueToDefault = 0;
 
     _eepromStartAddress = PHVALUEADDR;
-    _acidVoltage = 1215.0;   //buffer solution 4.0 at 25C 
-    _neutralVoltage = 1600.0; //buffer solution 7.0 at 25C 
+    _acidVoltage = 1215.0;   //buffer solution 4.01 at 25C 
+    _neutralVoltage = 1600.0; //buffer solution 6.86 at 25C 
     
-    _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage, NEUTRAL_LOW_VOLTAGE, NEUTRAL_HIGH_VOLTAGE};
-    _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage, ACID_LOW_VOLTAGE, ACID_HIGH_VOLTAGE};
-    _eepromCalibParamArray[2] = {"", 0, 0, 0, 0};
+    _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage};
+    _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage};
     
     _sensorName = "PH";
     _eepromCalibParamCount = 2;
@@ -48,12 +47,4 @@ float ESP_PH::compensateVoltWithTemperature() {
     _temperature = tempSensor.getTempCByIndex(0);
     voltage = 1500 + (_voltage - 1500) * (298.15 / (_temperature + 273.15));
     return voltage;
-}
-
-void ESP_PH::calibStartMessage() {
-    Serial.println();
-    Serial.println(F(">>>Enter PH Calibration Mode<<<"));
-    Serial.println(F(">>>Please put the probe into the 4.0 or 7.0 standard buffer solution.<<<"));
-    Serial.println(F(">>>Calibrate all for the best result.<<<"));
-    Serial.println();
 }

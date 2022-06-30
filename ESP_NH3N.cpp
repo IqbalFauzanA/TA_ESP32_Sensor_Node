@@ -11,9 +11,8 @@ ESP_NH3N::ESP_NH3N() {
     _strongBaseVoltage = 2600.0; 
     _weakBaseVoltage = 2400.0;
 
-    _eepromCalibParamArray[0] = {"Weak Base Voltage", WEAK_BASE_VALUE, &_weakBaseVoltage, WEAK_BASE_LOW_VOLTAGE, WEAK_BASE_HIGH_VOLTAGE};
-    _eepromCalibParamArray[1] = {"Strong Base Voltage", STRONG_BASE_VALUE, &_strongBaseVoltage, STRONG_BASE_LOW_VOLTAGE, STRONG_BASE_HIGH_VOLTAGE};
-    _eepromCalibParamArray[2] = {"", 0, 0, 0, 0};
+    _eepromCalibParamArray[0] = {"Weak Base Voltage", WEAK_BASE_VALUE, &_weakBaseVoltage};
+    _eepromCalibParamArray[1] = {"Strong Base Voltage", STRONG_BASE_VALUE, &_strongBaseVoltage};
     
     _sensorName = "NH3N";
     _eepromCalibParamCount = 2;
@@ -29,12 +28,4 @@ float ESP_NH3N::calculateValueFromVolt() {
     float intercept = WEAK_BASE_VALUE - slope * _weakBaseVoltage;
     float value = slope * _voltage + intercept; //y = k*x + b
     return value;
-}
-
-void ESP_NH3N::calibStartMessage() {
-    Serial.println();
-    Serial.println(F(">>>Enter NH3N Calibration Mode<<<"));
-    Serial.println(F(">>>Please put the probe into the weak or strong base standard buffer solution.<<<"));
-    Serial.println(F(">>>Calibrate all for the best result.<<<"));
-    Serial.println();
 }

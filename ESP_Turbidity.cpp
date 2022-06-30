@@ -22,9 +22,9 @@ ESP_Turbidity::ESP_Turbidity() {
     _transparentVoltage = 2900;   //solution 0.0 NTU at 25C 2460
     _translucentVoltage = 2700; //solution 304.5 NTU at 25C 2320
     _opaqueVoltage = 2500; //solution 511.5 NTU at 25C 2170
-    _eepromCalibParamArray[0] = {"Opaque (511.5 NTU) Voltage", OPAQUE_VALUE, &_opaqueVoltage, OPAQUE_LOW_VOLTAGE, OPAQUE_HIGH_VOLTAGE};
-    _eepromCalibParamArray[1] = {"Translucent (304.5 NTU) Voltage", TRANSLUCENT_VALUE, &_translucentVoltage, TRANSLUCENT_LOW_VOLTAGE, TRANSLUCENT_HIGH_VOLTAGE};
-    _eepromCalibParamArray[2] = {"Transparent (0 NTU) Voltage", TRANSPARENT_VALUE, &_transparentVoltage, TRANSPARENT_LOW_VOLTAGE, TRANSPARENT_HIGH_VOLTAGE};
+    _eepromCalibParamArray[0] = {"Opaque (511.5 NTU) Voltage", OPAQUE_VALUE, &_opaqueVoltage};
+    _eepromCalibParamArray[1] = {"Translucent (304.5 NTU) Voltage", TRANSLUCENT_VALUE, &_translucentVoltage};
+    _eepromCalibParamArray[2] = {"Transparent (0 NTU) Voltage", TRANSPARENT_VALUE, &_transparentVoltage};
 
     _sensorName = "Tbd";
     _eepromCalibParamCount = 3;
@@ -86,12 +86,4 @@ float ESP_Turbidity::compensateVoltWithTemperature() {
     _temperature = tempSensor.getTempCByIndex(0); //store last temperature value
     voltage = (1455*_voltage-3795*_temperature+94875)/(2*_temperature+1405);
     return voltage;
-}
-
-void ESP_Turbidity::calibStartMessage() {
-    Serial.println();
-    Serial.println(F(">>>Enter Turbidity Calibration Mode<<<"));
-    Serial.println(F(">>>Please put the probe into the 0.0, 1000.0, or 2000.0 NTU standard solution.<<<"));
-    Serial.println(F(">>>Calibrate all for best result.<<<"));
-    Serial.println();
 }

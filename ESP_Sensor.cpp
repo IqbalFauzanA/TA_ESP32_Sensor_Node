@@ -76,6 +76,8 @@ void ESP_Sensor::calibration(byte *sensor)
         static bool isCalibSuccess = false;
         static bool isPressed = false;
         static bool isCalibrating = false;
+        static bool isParamMenu = false;
+        static byte calibParamIdx = 10;
         static unsigned long timepoint;
         if (cal_button.isPressed())
         {
@@ -84,18 +86,50 @@ void ESP_Sensor::calibration(byte *sensor)
         // STILL OUTSIDE CALIB MODE
         if (isCalibrating == false)
         {
-            displayTwoLines(F("Select mode:"), _sensorName + F(" Calibration"));
-            if (isPressed && cal_button.isReleased())
-            { // ENTER CALIB MODE
-                calibStartMessage();
-                isCalibrating = true;
-                isCalibSuccess = false;
-                isPressed = false;
-                timepoint = millis() - CALCULATE_PERIOD;
-            }
-            else if (mode_button.isReleased())
+            if (calibParamIdx == 10)// OUTSIDE PARAMETER MENU
             {
-                (*sensor)++; // move to next sensor
+                displayTwoLines(F("Select mode:"),
+                                _sensorName + F(" Calibration"));
+                if (isPressed && cal_button.isReleased())
+                { // ENTER CALIB MODE
+                    isPressed = false;
+                    calibParamIdx = 0;// ENTER PARAMETER MENU
+                }
+                else if (mode_button.isReleased())
+                {
+                    (*sensor)++; // move to next sensor
+                }
+            }
+            else if (calibParamIdx < _eepromCalibParamCount)// INSIDE PARAMETER MENU
+            {
+                displayTwoLines(F("Sel. calib. param.:"), 
+                                _eepromCalibParamArray[calibParamIdx].name);
+                if (isPressed && cal_button.isReleased())
+                {
+                    isPressed = false;
+                    isCalibrating = true;
+                    isCalibSuccess = false;
+                    timepoint = millis() - CALCULATE_PERIOD;
+                }
+                else if (mode_button.isReleased())
+                {
+                    calibParamIdx++;
+                }
+            }
+            else
+            {
+                displayTwoLines(F("Sel. calib. param.:"), 
+                                F("Back to sensor menu"));
+                if (mode_button.isReleased())
+                {
+                    calibParamIdx = 0;
+                }
+                else if (isPressed && cal_button.isReleased())
+                {
+                    isPressed = false;
+                    calibParamIdx = 10; // EXIT PARAM MENU
+                    saveCalibValueAndExit(&isCalibSuccess);
+                }
             }
         }
         // INSIDE CALIB MODE
@@ -104,17 +138,16 @@ void ESP_Sensor::calibration(byte *sensor)
             if (millis() - timepoint > CALCULATE_PERIOD)
             {
                 updateVoltAndValue();
-                calibDisplay();
+                calibDisplay(calibParamIdx);
                 timepoint = millis();
             }
             if (isPressed && cal_button.isReleased())
             { // CAPTURE CALIB VOLT
-                captureCalibValue(&isCalibSuccess);
+                captureCalibValue(&isCalibSuccess, calibParamIdx);
                 isPressed = false;
             }
             else if (mode_button.isReleased())
             { // EXIT CALIB MODE
-                saveCalibValueAndExit(&isCalibSuccess);
                 isCalibrating = false;
             }
         }
@@ -125,34 +158,19 @@ void ESP_Sensor::calibration(byte *sensor)
     }
 }
 
-void ESP_Sensor::captureCalibValue(bool *isCalibSuccess)
+void ESP_Sensor::captureCalibValue(bool *isCalibSuccess, byte calibParamIdx)
 {
-    for (int i = 0; i < 3; i++)
+    if ((0 < _voltage) && (_voltage < 3300))
     {
-        if ((_eepromCalibParamArray[i].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[i].upperBound))
-        {
-            Serial.println();
-            Serial.print(F(">>>Solution: "));
-            Serial.print(_eepromCalibParamArray[i].solutionValue);
-            Serial.print(F(" "));
-            Serial.print(_sensorUnit);
-            Serial.println(F("<<<"));
-            *_eepromCalibParamArray[i].calibratedValue = calculateCalibValue(_eepromCalibParamArray[i].solutionValue, _voltage);
-            Serial.println("Calibrated value: " + String(*_eepromCalibParamArray[i].calibratedValue));
-            *isCalibSuccess = 1;
-            Serial.println();
-            display.println(F("CAL. SUCCESSFUL!"));
-            display.display();
-            delay(500);
-            break;
-        }
+        *_eepromCalibParamArray[calibParamIdx].calibratedValue = calculateCalibValue(_eepromCalibParamArray[calibParamIdx].solutionValue, _voltage);
+        *isCalibSuccess = 1;
+        display.println(F("CAL. SUCCESSFUL!"));
+        display.display();
+        delay(500);
     }
-    if (*isCalibSuccess == false)
+    else
     {
-        Serial.println();
-        Serial.println(F(">>>Buffer Solution Error, Try Again<<<"));
-        Serial.println();
-        display.println(F("CAL. FAILED!"));
+        display.println(F("VOLT OUT OF RANGE!"));
         display.display();
         delay(500);
     }
@@ -168,44 +186,22 @@ void ESP_Sensor::saveCalibValueAndExit(bool *isCalibSuccess)
     if (*isCalibSuccess)
     { 
         saveNewCalib();
-        Serial.print(F(">>>Calibration Successful"));
         display.println(F("VALUE SAVED"));
         display.display();
         delay(1000);
     }
     else
     {
-        Serial.print(F(">>>Calibration Failed"));
         display.println(F("VALUE NOT SAVED"));
         display.display();
         delay(1000);
     }
-    Serial.print(F(", exit "));
-    Serial.print(_sensorName);
-    Serial.print(F(" Calibration Mode<<<"));
-    Serial.println();
     *isCalibSuccess = 0;
 }
 
-void ESP_Sensor::calibDisplay()
+void ESP_Sensor::calibDisplay(byte calibParamIdx)
 {
-    String firstLine;
-    if ((_eepromCalibParamArray[0].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[0].upperBound))
-    {
-        firstLine = String(_eepromCalibParamArray[0].solutionValue, 2) + _sensorUnit + F(" BUFFER");
-    }
-    else if ((_eepromCalibParamArray[1].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[1].upperBound))
-    {
-        firstLine = String(_eepromCalibParamArray[1].solutionValue, 2) + _sensorUnit + F(" BUFFER");
-    }
-    else if ((_eepromCalibParamArray[2].lowerBound < _voltage) && (_voltage < _eepromCalibParamArray[2].upperBound))
-    {
-        firstLine = String(_eepromCalibParamArray[2].solutionValue, 2) + _sensorUnit + F(" BUFFER");
-    }
-    else
-    {
-        firstLine = F("NOT BUFFER SOL.");
-    }
+    String firstLine = String(_eepromCalibParamArray[calibParamIdx].solutionValue, 2) + F(" ") + _sensorUnit + F(" BUFFER");
     String secondLine = _sensorName + F(" ");
     if (isTbdOutOfRange())
     {
@@ -231,9 +227,6 @@ void ESP_Sensor::updateVoltAndValue()
         }
         _voltage = volt / m;
         _value = calculateValueFromVolt();
-        Serial.println("Temperature: " + (String)_temperature + " ^C");
-        Serial.println("Voltage (max. 3300): " + (String)_voltage + " mV");
-        Serial.println(_sensorName + " value: " + (String)_value + " " + _sensorUnit);
     }
     else
     {

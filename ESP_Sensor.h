@@ -59,8 +59,6 @@ public:
         String name;
         float solutionValue;
         float *calibratedValue;
-        float lowerBound;
-        float upperBound;
     } _eepromCalibParamArray[3];
 
 protected:
@@ -69,13 +67,12 @@ protected:
     int _eepromAddress;
     int _sensorPin;
 
-    void calibDisplay();
-    void captureCalibValue(bool *calibrationFinish);
+    void calibDisplay(byte calibParamIdx);
+    void captureCalibValue(bool *calibrationFinish, byte calibParamIdx);
     void saveCalibValueAndExit(bool *calibrationFinish);
 
     virtual float compensateVoltWithTemperature();
     virtual void readAndAverageVolt(); // to facilitate EC difference
-    virtual void calibStartMessage() = 0;
     virtual float calculateValueFromVolt() = 0;
     virtual float calculateCalibValue(float solutionValue, float voltage);
 };
