@@ -27,11 +27,11 @@ source code.
 
 ### Schematics
 
-The picture below is the schematic and board for Sensor Node 1.
+The pictures below are the schematic and board for Sensor Node 1.
 ![Sensor Node 1](https://i.imgur.com/2B6KY8h.png)
 ![Sensor Node 1 Board](https://i.imgur.com/8VcT3iy.png)
 
-The picture below is the schematic and board for Sensor Node 2.
+The pictures below are the schematic and board for Sensor Node 2.
 ![Sensor Node 2](https://i.imgur.com/u23lxd9.png)
 ![Sensor Node 2 Board](https://i.imgur.com/GUvEcdG.png)
 
