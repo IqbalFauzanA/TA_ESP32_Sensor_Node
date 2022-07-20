@@ -65,7 +65,7 @@ to make the OLED display readable.
 | `OneWire.h`           | Paul Stoffregen | Temperature sensor |
 | `Adafruit_GFX.h`      | Adafruit        | OLED Display       |
 | `Adafruit_SH110X.h`   | Adafruit        | OLED Display       |
-
+\
 4. Upload to ESP32.
 
 ## Calibrating Sensors
