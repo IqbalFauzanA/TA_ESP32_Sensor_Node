@@ -20,16 +20,16 @@ ESP_EC::ESP_EC()
     ads.setGain(GAIN_ONE);
     ads.begin();
 
-    _eepromStartAddress = KVALUEADDR;
+    _eepromStartAddress = 10; // the start address of the EC calb. param. stored in the EEPROM
 
     // default values
-    _kvalueLow = 1.0;
-    _kvalueHigh = 1.0;
-    _eepromCalibParamArray[0] = {"K Value Low (1.413 mS/cm)", EC_LOW_VALUE, &_kvalueLow};
-    _eepromCalibParamArray[1] = {"K Value High (2.76 mS/cm or 12.88 mS/cm)", EC_HIGH_VALUE, &_kvalueHigh};
+    _lowCondVolt = 300;
+    _highCondVolt = 2400;
+    _calibParamArray[0] = {EC_LOW_VALUE, &_lowCondVolt};
+    _calibParamArray[1] = {EC_HIGH_VALUE, &_highCondVolt};
 
     _sensorName = "EC";
-    _eepromCalibParamCount = 2;
+    _calibParamCount = 2;
     _sensorUnit = "mS/cm";
 }
 
@@ -40,19 +40,22 @@ ESP_EC::~ESP_EC()
 // compensate raw EC with calibration value and temperature
 float ESP_EC::calculateValueFromVolt()
 {
-    float kvalue = _kvalueLow; // set default K value: K = kvalueLow
+    float kValueLow = RES2 * ECREF * EC_LOW_VALUE / 1000.0 / _lowCondVolt;
+    float kValueHigh = RES2 * ECREF * EC_HIGH_VALUE / 1000.0 / _highCondVolt;
     float value, valueTemp;
-    float _rawEC = 0;
-    _rawEC = 1000 * _voltage / RES2 / ECREF;
-    valueTemp = _rawEC * kvalue;
+    float _rawEC = 1000 * _voltage / RES2 / ECREF;
+    valueTemp = _rawEC * kValueLow; // use default K value (kvalueLow)
     // automatic shift process
     // First Range:(0,2.5); Second Range:(2.5,20)
     // if > 2.5, kvalue high, else low (stays default)
     if (valueTemp > 2.5)
     {
-        kvalue = _kvalueHigh;
+        value = _rawEC * kValueHigh;
     }
-    value = _rawEC * kvalue; // calculate the EC value after automatic shift
+    else
+    {
+        value = _rawEC * kValueLow;
+    }
     return value;
 }
 
@@ -76,9 +79,4 @@ void ESP_EC::readAndAverageVolt()
         voltage += 0.0000022091 * pow(adsvoltage, 3.0) - 0.00243269 * pow(adsvoltage, 2.0) + 1.74097 * adsvoltage - 8.11739;
     }
     _voltage = voltage / n;
-}
-
-float ESP_EC::calculateCalibValue(float solutionValue, float voltage)
-{
-    return RES2 * ECREF * solutionValue / 1000.0 / voltage;
 }

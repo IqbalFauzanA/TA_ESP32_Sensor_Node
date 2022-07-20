@@ -48,7 +48,7 @@ public:
     String _sensorName;
     String _sensorUnit;
     bool _resetCalibratedValueToDefault = 0;
-    int _eepromCalibParamCount; // the amount of value in eeprom array for each sensor
+    int _calibParamCount; // the amount of value in eeprom array for each sensor
 
     virtual bool isTbdOutOfRange();
 
@@ -56,10 +56,9 @@ public:
 
     struct eepromCalibParam
     {
-        String name;
         float solutionValue;
-        float *calibratedValue;
-    } _eepromCalibParamArray[3];
+        float *calibVolt;
+    } _calibParamArray[3];
 
 protected:
     float _voltage;
@@ -68,13 +67,12 @@ protected:
     int _sensorPin;
 
     void calibDisplay(byte calibParamIdx);
-    void captureCalibValue(bool *calibrationFinish, byte calibParamIdx);
-    void saveCalibValueAndExit(bool *calibrationFinish);
+    void captureCalibVolt(bool *calibrationFinish, byte calibParamIdx);
+    void saveCalibVoltAndExit(bool *calibrationFinish);
 
     virtual float compensateVoltWithTemperature();
     virtual void readAndAverageVolt(); // to facilitate EC difference
     virtual float calculateValueFromVolt() = 0;
-    virtual float calculateCalibValue(float solutionValue, float voltage);
 };
 
 #endif

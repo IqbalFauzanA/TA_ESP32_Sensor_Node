@@ -13,27 +13,25 @@
 
 #include "ESP_Sensor.h"
 
-#define TBDVALUEADDR 20
 #define TRANSPARENT_VALUE 0.0
 #define TRANSLUCENT_VALUE 304.5
 #define OPAQUE_VALUE 511.5
-#define TBD_SENSOR 35 //turbidity sensor pin
 
-class ESP_Turbidity: public ESP_Sensor
+class ESP_Turbidity : public ESP_Sensor
 {
-    public:
-        ESP_Turbidity();
-        ~ESP_Turbidity();
-        bool isTbdOutOfRange();
+public:
+    ESP_Turbidity();
+    ~ESP_Turbidity();
+    bool isTbdOutOfRange();
 
-    private:
-        float _transparentVoltage;
-        float _translucentVoltage;
-        float _opaqueVoltage;
-        float _vPeak;
-        
-        float calculateValueFromVolt();
-        float compensateVoltWithTemperature();
+private:
+    float _transparentVolt;
+    float _translucentVolt;
+    float _opaqueVolt;
+    float _vPeak;
+
+    float calculateValueFromVolt();
+    float compensateVoltWithTemperature();
 };
 
 #endif

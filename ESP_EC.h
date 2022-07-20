@@ -13,7 +13,6 @@
 #include "Adafruit_ADS1015.h"
 #include "ESP_Sensor.h"
 
-#define KVALUEADDR 10               // the start address of the K value stored in the EEPROM
 #define EC_LOW_VALUE 1.413
 #define EC_HIGH_VALUE 12.88
 #define RES2 900.0
@@ -26,15 +25,13 @@ public:
     ~ESP_EC();
 
 private:
-    float _kvalueLow;
-    float _kvalueHigh;
+    float _lowCondVolt;
+    float _highCondVolt;
 
     float calculateValueFromVolt();
     float compensateVoltWithTemperature();
     void captureCalibVolt(bool *calibrationFinish);
     void readAndAverageVolt();
-    float calculateCalibValue(float solutionValue, float voltage);
-    bool isCalibrationTemporaryValueValid(float eepromTemporaryValue);
 };
 
 #endif

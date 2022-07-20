@@ -9,41 +9,42 @@
 
 #include "ESP_PH.h"
 
+extern OneWire oneWire;              // Setup a oneWire instance to communicate with any OneWire devices
+extern DallasTemperature tempSensor; // Pass our oneWire reference to Dallas Temperature sensor
 
-
-extern OneWire oneWire;// Setup a oneWire instance to communicate with any OneWire devices
-extern DallasTemperature tempSensor;// Pass our oneWire reference to Dallas Temperature sensor
-
-
-ESP_PH::ESP_PH() {
+ESP_PH::ESP_PH()
+{
     _resetCalibratedValueToDefault = 0;
 
-    _eepromStartAddress = PHVALUEADDR;
-    _acidVoltage = 1215.0;   //buffer solution 4.01 at 25C 
-    _neutralVoltage = 1600.0; //buffer solution 6.86 at 25C 
-    
-    _eepromCalibParamArray[0] = {"Neutral (PH 7) Voltage", NEUTRAL_VALUE, &_neutralVoltage};
-    _eepromCalibParamArray[1] = {"Acid (PH 4) Voltage", ACID_VALUE, &_acidVoltage};
-    
+    _eepromStartAddress = 0; // the start address of the pH calibration parameters stored in the EEPROM
+    _acidVolt = 1215.0;    // buffer solution 4.01 at 25C
+    _neutralVolt = 1600.0; // buffer solution 6.86 at 25C
+
+    _calibParamArray[0] = {NEUTRAL_VALUE, &_neutralVolt};
+    _calibParamArray[1] = {ACID_VALUE, &_acidVolt};
+
     _sensorName = "PH";
-    _eepromCalibParamCount = 2;
+    _calibParamCount = 2;
     _sensorUnit = "";
-    _sensorPin = PH_SENSOR;
+    _sensorPin = 35;
 }
 
-ESP_PH::~ESP_PH() {
+ESP_PH::~ESP_PH()
+{
 }
 
-float ESP_PH::calculateValueFromVolt() {
-    float slope = (NEUTRAL_VALUE - ACID_VALUE) / (_neutralVoltage - _acidVoltage); // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
-    float intercept = NEUTRAL_VALUE - slope * _neutralVoltage;
-    float value = slope * _voltage + intercept; //y = k*x + b
+float ESP_PH::calculateValueFromVolt()
+{
+    float slope = (NEUTRAL_VALUE - ACID_VALUE) / (_neutralVolt - _acidVolt); // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
+    float intercept = NEUTRAL_VALUE - slope * _neutralVolt;
+    float value = slope * _voltage + intercept; // y = k*x + b
     return value;
 }
 
-float ESP_PH::compensateVoltWithTemperature() {
+float ESP_PH::compensateVoltWithTemperature()
+{
     float voltage;
-    tempSensor.requestTemperatures(); 
+    tempSensor.requestTemperatures();
     _temperature = tempSensor.getTempCByIndex(0);
     voltage = 1500 + (_voltage - 1500) * (298.15 / (_temperature + 273.15));
     return voltage;

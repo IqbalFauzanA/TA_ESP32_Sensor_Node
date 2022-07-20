@@ -17,25 +17,27 @@ ESP_Sensor::~ESP_Sensor()
 void ESP_Sensor::begin()
 {
     _eepromAddress = _eepromStartAddress;
-    for (int i = 0; i < _eepromCalibParamCount; i++)
+    for (int i = 0; i < _calibParamCount; i++)
     {
-        float default_value = *_eepromCalibParamArray[i].calibratedValue;              // set default_value with initial value
-        *_eepromCalibParamArray[i].calibratedValue = EEPROM.readFloat(_eepromAddress); // read the calibrated value from EEPROM
-        if (*_eepromCalibParamArray[i].calibratedValue == float() || isnan(*_eepromCalibParamArray[i].calibratedValue) ||
+        float default_value = *_calibParamArray[i].calibVolt;              // set default_value with initial value
+        *_calibParamArray[i].calibVolt = EEPROM.readFloat(_eepromAddress); // read the calibrated value from EEPROM
+        if (*_calibParamArray[i].calibVolt == float() || isnan(*_calibParamArray[i].calibVolt) ||
             _resetCalibratedValueToDefault)
         {
-            *_eepromCalibParamArray[i].calibratedValue = default_value; // For new EEPROM, write default value to EEPROM
-            EEPROM.writeFloat(_eepromAddress, *_eepromCalibParamArray[i].calibratedValue);
+            *_calibParamArray[i].calibVolt = default_value; // For new EEPROM, write default value to EEPROM
+            EEPROM.writeFloat(_eepromAddress, *_calibParamArray[i].calibVolt);
             EEPROM.commit();
-            Serial.print(*_eepromCalibParamArray[i].calibratedValue);
+            Serial.print(*_calibParamArray[i].calibVolt);
             Serial.print(F(" written in EEPROM."));
         }
         _eepromAddress = _eepromAddress + (int)sizeof(float);
         Serial.print(_sensorName);
-        Serial.print(" ");
-        Serial.print(_eepromCalibParamArray[i].name);
-        Serial.print(F(" in EEPROM: "));
-        Serial.println(*_eepromCalibParamArray[i].calibratedValue);
+        Serial.print(F(" "));
+        Serial.print(_calibParamArray[i].solutionValue);
+        Serial.print(F(" "));
+        Serial.print(_sensorUnit);
+        Serial.print(F(" Voltage in EEPROM: "));
+        Serial.println(*_calibParamArray[i].calibVolt);
     }
 
     // check if sensor is set as enabled in EEPROM or not
@@ -86,24 +88,26 @@ void ESP_Sensor::calibration(byte *sensor)
         // STILL OUTSIDE CALIB MODE
         if (isCalibrating == false)
         {
-            if (calibParamIdx == 10)// OUTSIDE PARAMETER MENU
+            if (calibParamIdx == 10) // OUTSIDE PARAMETER MENU
             {
                 displayTwoLines(F("Select mode:"),
                                 _sensorName + F(" Calibration"));
                 if (isPressed && cal_button.isReleased())
                 { // ENTER CALIB MODE
                     isPressed = false;
-                    calibParamIdx = 0;// ENTER PARAMETER MENU
+                    calibParamIdx = 0; // ENTER PARAMETER MENU
                 }
                 else if (mode_button.isReleased())
                 {
                     (*sensor)++; // move to next sensor
                 }
             }
-            else if (calibParamIdx < _eepromCalibParamCount)// INSIDE PARAMETER MENU
+            else if (calibParamIdx < _calibParamCount) // INSIDE PARAMETER MENU
             {
-                displayTwoLines(F("Sel. calib. param.:"), 
-                                _eepromCalibParamArray[calibParamIdx].name);
+                displayTwoLines(F("Select solution:"),
+                                _sensorName + " " +
+                                    String(_calibParamArray[calibParamIdx].solutionValue) +
+                                    " " + _sensorUnit);
                 if (isPressed && cal_button.isReleased())
                 {
                     isPressed = false;
@@ -116,10 +120,25 @@ void ESP_Sensor::calibration(byte *sensor)
                     calibParamIdx++;
                 }
             }
+            else if (calibParamIdx == _calibParamCount)
+            {
+                displayTwoLines(F("Select solution:"),
+                                F("Save & Back"));
+                if (mode_button.isReleased())
+                {
+                    calibParamIdx++;
+                }
+                else if (isPressed && cal_button.isReleased())
+                {
+                    isPressed = false;
+                    calibParamIdx = 10; // SAVE & EXIT PARAM MENU
+                    saveCalibVoltAndExit(&isCalibSuccess);
+                }
+            }
             else
             {
-                displayTwoLines(F("Sel. calib. param.:"), 
-                                F("Back to sensor menu"));
+                displayTwoLines(F("Select solution:"),
+                                F("Cancel & Back"));
                 if (mode_button.isReleased())
                 {
                     calibParamIdx = 0;
@@ -127,8 +146,9 @@ void ESP_Sensor::calibration(byte *sensor)
                 else if (isPressed && cal_button.isReleased())
                 {
                     isPressed = false;
-                    calibParamIdx = 10; // EXIT PARAM MENU
-                    saveCalibValueAndExit(&isCalibSuccess);
+                    calibParamIdx = 10; // CANCEL & EXIT PARAM MENU
+                    isCalibSuccess = 0;
+                    saveCalibVoltAndExit(&isCalibSuccess);
                 }
             }
         }
@@ -143,7 +163,7 @@ void ESP_Sensor::calibration(byte *sensor)
             }
             if (isPressed && cal_button.isReleased())
             { // CAPTURE CALIB VOLT
-                captureCalibValue(&isCalibSuccess, calibParamIdx);
+                captureCalibVolt(&isCalibSuccess, calibParamIdx);
                 isPressed = false;
             }
             else if (mode_button.isReleased())
@@ -158,11 +178,11 @@ void ESP_Sensor::calibration(byte *sensor)
     }
 }
 
-void ESP_Sensor::captureCalibValue(bool *isCalibSuccess, byte calibParamIdx)
+void ESP_Sensor::captureCalibVolt(bool *isCalibSuccess, byte calibParamIdx)
 {
     if ((0 < _voltage) && (_voltage < 3300))
     {
-        *_eepromCalibParamArray[calibParamIdx].calibratedValue = calculateCalibValue(_eepromCalibParamArray[calibParamIdx].solutionValue, _voltage);
+        *_calibParamArray[calibParamIdx].calibVolt = _voltage;
         *isCalibSuccess = 1;
         display.println(F("CAL. SUCCESSFUL!"));
         display.display();
@@ -176,15 +196,10 @@ void ESP_Sensor::captureCalibValue(bool *isCalibSuccess, byte calibParamIdx)
     }
 }
 
-float ESP_Sensor::calculateCalibValue(float solutionValue, float voltage)
-{
-    return voltage;
-}
-
-void ESP_Sensor::saveCalibValueAndExit(bool *isCalibSuccess)
+void ESP_Sensor::saveCalibVoltAndExit(bool *isCalibSuccess)
 {
     if (*isCalibSuccess)
-    { 
+    {
         saveNewCalib();
         display.println(F("VALUE SAVED"));
         display.display();
@@ -201,14 +216,14 @@ void ESP_Sensor::saveCalibValueAndExit(bool *isCalibSuccess)
 
 void ESP_Sensor::calibDisplay(byte calibParamIdx)
 {
-    String firstLine = String(_eepromCalibParamArray[calibParamIdx].solutionValue, 2) + F(" ") + _sensorUnit + F(" BUFFER");
+    String firstLine = String(_calibParamArray[calibParamIdx].solutionValue) + F(" ") + _sensorUnit + F(" SOLUTION");
     String secondLine = _sensorName + F(" ");
     if (isTbdOutOfRange())
     {
         secondLine += F(">");
     }
-    displayTwoLines(firstLine, secondLine + String(_value, 2) + F(" ") + _sensorUnit);
-    display.println("Voltage (mV): " + String(_voltage, 2));
+    displayTwoLines(firstLine, secondLine + String(_value) + F(" ") + _sensorUnit);
+    display.println("Voltage (mV): " + String(_voltage));
     display.println(String(_temperature, 2) + F(" ^C"));
     display.display();
 }
@@ -259,11 +274,11 @@ void ESP_Sensor::saveNewConfig()
 void ESP_Sensor::saveNewCalib()
 {
     int eepromAddr = _eepromStartAddress;
-    for (int i = 0; i < _eepromCalibParamCount; i++)
+    for (int i = 0; i < _calibParamCount; i++)
     {
-        if (*_eepromCalibParamArray[i].calibratedValue != EEPROM.readFloat(eepromAddr))
+        if (*_calibParamArray[i].calibVolt != EEPROM.readFloat(eepromAddr))
         {
-            EEPROM.writeFloat(eepromAddr, *_eepromCalibParamArray[i].calibratedValue);
+            EEPROM.writeFloat(eepromAddr, *_calibParamArray[i].calibVolt);
             EEPROM.commit();
         }
         eepromAddr += (int)sizeof(float);
