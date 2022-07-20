@@ -60,7 +60,7 @@ to make the OLED display readable.
 3. Install these libraries through the library manager.
 
 | Library Name          | Author          | Library Usage      |
-| :-------------------- | :-------------- | :----------------- |
+| :-------------------: | :-------------: | :----------------: |
 | `DallasTemperature.h` | Miles Burton    | Temperature sensor |
 | `OneWire.h`           | Paul Stoffregen | Temperature sensor |
 | `Adafruit_GFX.h`      | Adafruit        | OLED Display       |
