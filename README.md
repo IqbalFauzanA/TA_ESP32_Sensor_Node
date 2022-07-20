@@ -58,14 +58,16 @@ to make the OLED display readable.
 1. Download this repository and put all the files into a folder named "TA_ESP32_Sensors_Integrated_with_Raspi".
 2. Open the file "TA_ESP32_Sensors_Integrated_with_Raspi.ino" using Arduino IDE. 
 3. Install these libraries through the library manager.
-\
+
+
 | Library Name          | Author          | Library Usage      |
 | :-------------------- | :-------------: | :----------------: |
 | `DallasTemperature.h` | Miles Burton    | Temperature sensor |
 | `OneWire.h`           | Paul Stoffregen | Temperature sensor |
 | `Adafruit_GFX.h`      | Adafruit        | OLED Display       |
 | `Adafruit_SH110X.h`   | Adafruit        | OLED Display       |
-\
+
+
 4. Upload to ESP32.
 
 ## Calibrating Sensors
