@@ -35,7 +35,7 @@ The picture below is the schematic and board for Sensor Node 2.
 ![Sensor Node 2](https://i.imgur.com/u23lxd9.png)
 ![Sensor Node 2 Board](https://i.imgur.com/GUvEcdG.png)
 
-Please note that both schematics need to be flipped 180 degrees 
+Please note that both schematics need to be rotated 180 degrees 
 to make the OLED display readable.
 
 ### Product Links of Components
