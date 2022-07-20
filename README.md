@@ -14,7 +14,8 @@ slots: pH/NH3-N (these two sensors can use the same slot
 alternately), electrical conductivity or EC (converted to Total 
 Suspended Solids or TSS), turbidity (converted to TSS), and 
 temperature (as a corrector). Sensor Node 1 uses Zigbee XBee
-S2C module to communicate wirelessly with Sink Node. Sensor Node 
+S2C module (set to transparent mode for UART communication)
+to communicate wirelessly with Sink Node. Sensor Node 
 2 has two sensor slots: pH/NH3-N and temperature. Sensor Node 2 
 uses cables to communicate with Sink Node.
 
