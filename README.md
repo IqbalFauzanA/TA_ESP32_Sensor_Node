@@ -83,23 +83,10 @@ to make the OLED display readable.
 9. To check the calibration value, restart the calibration mode and pay attention to the value shown on the display.
 \
 After calibration, keep the Sensor Node powered and put all the sensors into the liquid which will be observed. The Sensor Node will perform data reading after receiving a signal from the Sink Node.
-## Credits & Demo
 
-This project is part of a bigger team project. My responsibilities
-in the project were all that I wrote in this github account (most 
-of Sensor Nodes and Sink Nodes). My first teammate, 
-[Fatimah Husna Salsabilla](mailto:fatimaahhus@gmail.com), was 
-responsible for the addition of a web server. My second teammate, 
-[Gomos Parulian Manalu](mailto:gomosmanalu@gmail.com), was
-responsible for integrating LoRa communication module
-(unfinished). The video below (in Indonesian language) is the
-short explanation and the demo of the earlier version of the
-team project.
+## Continuation
 
-[![Demo Video](https://img.youtube.com/vi/XvT66akgQCk/0.jpg)](https://www.youtube.com/watch?v=XvT66akgQCk)
-
-
-## 🔗 Links
-
-[![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/miqbalfauzana/)
+This page is the first part of the project ecplanation. Click this
+[link](https://github.com/IqbalFauzanA/TA_Raspi_Integrated_with_ESP32).
+to see the second part.
 
