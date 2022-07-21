@@ -19,9 +19,8 @@ to communicate wirelessly with Sink Node. Sensor Node
 2 has two sensor slots: pH/NH3-N and temperature. Sensor Node 2 
 uses cables to communicate with Sink Node.
 
-The Sensor Nodes have a feature that lets users calibrate without 
-having to shut down the entire system, change wiring, and change 
-source code.
+The Sensor Nodes have a feature that lets users calibrate
+sensors while the system is still running.
 
 
 ## Hardware
