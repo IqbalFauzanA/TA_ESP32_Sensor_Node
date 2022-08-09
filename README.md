@@ -86,7 +86,7 @@ After calibration, keep the Sensor Node powered and put all the sensors into the
 
 ## Continuation
 
-This page is the first part of the project ecplanation. Click this
-[link](https://github.com/IqbalFauzanA/TA_Raspi_Integrated_with_ESP32).
+This page is the first part of the project explanation. Click this
+[link](https://github.com/IqbalFauzanA/TA_Raspi_Integrated_with_ESP32)
 to see the second part.
 
